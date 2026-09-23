@@ -17,6 +17,8 @@ const MAX_HISTORY = 20
 
 // Cajon propio de Claroscuro en Redis: todo lleva prefijo cr:
 const CR_CONTEXT_KEY = 'cr:contexto_adicional'
+const CR_CATALOGO_KEY = 'cr:catalogo'
+const CR_CATALOGO_FECHA_KEY = 'cr:catalogo_fecha'
 
 const SYSTEM_PROMPT = `# IDENTIDAD
 
@@ -34,7 +36,7 @@ Claroscuro Records es un sello de musica electronica minimal y techno, activo de
 
 Distribuye a traves de Label Engine y esta presente en Beatport, Apple Music, Bandcamp, Spotify y SoundCloud. La mayor parte del ingreso viene de Beatport y Apple Music. Las ventas directas ocurren en Beatport y Bandcamp; Spotify y Apple Music son principalmente streaming.
 
-El catalogo usa codigos secuenciales tipo CLOS seguido de un numero, y ya va por encima de 60 lanzamientos. El ciclo normal de un release es: llega una demo, se aprueba, se firma, se masteriza, se prepara el artwork y las previews, se sube a Label Engine, y luego viene la promocion.
+El catalogo usa codigos secuenciales tipo CLOS seguido de un numero. El ciclo normal de un release es: llega una demo, se aprueba, se firma, se masteriza, se prepara el artwork y las previews, se sube a Label Engine, y luego viene la promocion.
 
 El sello publica un set o podcast mensual de un artista de la linea del sello, como gancho de trafico y comunidad.
 
@@ -43,8 +45,9 @@ El sello publica un set o podcast mensual de un artista de la linea del sello, c
 Nunca simules una accion si la herramienta no esta conectada.
 
 - Guardar contexto nuevo: OPERATIVA. Cuando Fer use palabras como guarda, anota o agrega, ordena la info y guardala sin preguntar.
+- Consultar catalogo: OPERATIVA. Abajo tienes el catalogo oficial del sello, cargado desde el CSV de Label Engine (el distribuidor). Cada linea es un release: codigo, fecha de lanzamiento, artista y titulo, UPC, y sus tracks con mezcla, duracion e ISRC. Usalo para responder sobre releases, artistas, fechas, tracks, ISRC y UPC. No inventes datos que no esten ahi (por ejemplo links o ventas). Si el catalogo no esta cargado, dile a Fer que te envie el CSV de Label Engine como archivo.
 - Generar pieza grafica: PENDIENTE. El motor existe pero aun no esta configurado para Claroscuro. Informa que no esta lista y no simules el resultado.
-- Consultar estado de un release: PENDIENTE. No esta conectado todavia.
+- Seguimiento del ciclo de un release en curso (demo, firma, master, artwork): PENDIENTE. El catalogo solo tiene lo ya distribuido.
 - Consultar ingresos del mes: PENDIENTE. No esta conectado todavia.
 
 # CRITERIO
@@ -92,20 +95,183 @@ async function sendTelegram(chatId: number, text: string) {
   )
 }
 
+// ---------- Herramienta: catalogo desde el CSV de Label Engine ----------
+
+// Lee un CSV respetando campos entre comillas (con comas o comillas adentro)
+function parseCSV(text: string): string[][] {
+  const rows: string[][] = []
+  let row: string[] = []
+  let field = ''
+  let inQuotes = false
+  const t = text.replace(/^\uFEFF/, '')
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i]
+    if (inQuotes) {
+      if (c === '"') {
+        if (t[i + 1] === '"') { field += '"'; i++ }
+        else inQuotes = false
+      } else field += c
+    } else if (c === '"') inQuotes = true
+    else if (c === ',') { row.push(field); field = '' }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && t[i + 1] === '\n') i++
+      row.push(field); field = ''
+      if (row.some(f => f.trim() !== '')) rows.push(row)
+      row = []
+    } else field += c
+  }
+  row.push(field)
+  if (row.some(f => f.trim() !== '')) rows.push(row)
+  return rows
+}
+
+function numeroCatalogo(code: string): number {
+  const m = code.match(/(\d+)\s*$/)
+  return m ? parseInt(m[1], 10) : -1
+}
+
+type ResultadoCatalogo = {
+  releases: number
+  tracks: number
+  codigosRaros: string[]
+  numerosFaltantes: number[]
+  texto: string
+}
+
+function construirCatalogo(csv: string): ResultadoCatalogo {
+  const rows = parseCSV(csv)
+  if (rows.length < 2) throw new Error('El CSV viene vacio')
+  const header = rows[0].map(h => h.trim())
+  const col = (name: string) => {
+    const idx = header.indexOf(name)
+    if (idx === -1) throw new Error('Falta la columna ' + name)
+    return idx
+  }
+  const C = {
+    catalogo: col('Catalog#'),
+    fecha: col('Release Date'),
+    relArtista: col('Release Artist'),
+    relTitulo: col('Release Title'),
+    upc: col('UPC#'),
+    trArtista: col('Track Artist'),
+    trTitulo: col('Track Title'),
+    trMix: col('Track Mix'),
+    isrc: col('ISRC'),
+    min: col('Time in Minutes'),
+    seg: col('Time in Seconds')
+  }
+
+  type Release = { codigo: string; fecha: string; titulo: string; upc: string; tracks: string[] }
+  const releases = new Map<string, Release>()
+
+  for (const r of rows.slice(1)) {
+    const g = (i: number) => (r[i] || '').trim()
+    const codigo = g(C.catalogo) || 'sin codigo'
+    if (!releases.has(codigo)) {
+      releases.set(codigo, {
+        codigo,
+        fecha: g(C.fecha),
+        titulo: g(C.relArtista) + ' - ' + g(C.relTitulo),
+        upc: g(C.upc),
+        tracks: []
+      })
+    }
+    const rel = releases.get(codigo)!
+    const artistaTrack = g(C.trArtista) && g(C.trArtista) !== g(C.relArtista) ? g(C.trArtista) + ' - ' : ''
+    const mix = g(C.trMix) ? ' (' + g(C.trMix) + ')' : ''
+    const dur = g(C.min) ? ' ' + g(C.min) + ':' + g(C.seg).padStart(2, '0') : ''
+    const isrc = g(C.isrc) ? ' [' + g(C.isrc) + ']' : ''
+    rel.tracks.push(artistaTrack + g(C.trTitulo) + mix + dur + isrc)
+  }
+
+  const lista = Array.from(releases.values()).sort((a, b) => numeroCatalogo(b.codigo) - numeroCatalogo(a.codigo))
+
+  const texto = lista.map(r =>
+    [r.codigo, r.fecha, r.titulo, 'UPC ' + (r.upc || '-'), r.tracks.join(' / ')].join(' | ')
+  ).join('\n')
+
+  // Controles de calidad: codigos con formato distinto a CLOS000 y numeros que faltan
+  const codigosRaros = lista.map(r => r.codigo).filter(c => !/^CLOS\d{3}$/.test(c))
+  const numeros = new Set(lista.filter(r => r.codigo.startsWith('CLOS')).map(r => numeroCatalogo(r.codigo)))
+  const maximo = Math.max(0, ...Array.from(numeros))
+  const numerosFaltantes: number[] = []
+  for (let n = 1; n <= maximo; n++) if (!numeros.has(n)) numerosFaltantes.push(n)
+
+  return {
+    releases: lista.length,
+    tracks: rows.length - 1,
+    codigosRaros,
+    numerosFaltantes,
+    texto
+  }
+}
+
+async function descargarArchivoTelegram(fileId: string): Promise<string> {
+  const info = await fetch(
+    'https://api.telegram.org/bot' + TELEGRAM_TOKEN + '/getFile?file_id=' + fileId
+  ).then(r => r.json())
+  if (!info.ok) throw new Error('Telegram no entrego el archivo')
+  const res = await fetch(
+    'https://api.telegram.org/file/bot' + TELEGRAM_TOKEN + '/' + info.result.file_path
+  )
+  return await res.text()
+}
+
+async function cargarCatalogoDesdeCSV(chatId: number, fileId: string) {
+  await sendTelegram(chatId, 'Recibi el CSV. Leyendo el catalogo...')
+  try {
+    const csv = await descargarArchivoTelegram(fileId)
+    const r = construirCatalogo(csv)
+    await redis.set(CR_CATALOGO_KEY, r.texto)
+    await redis.set(CR_CATALOGO_FECHA_KEY, new Date().toISOString().slice(0, 10))
+
+    let msg = 'Catalogo cargado: ' + r.releases + ' releases y ' + r.tracks + ' tracks.'
+    if (r.codigosRaros.length > 0) {
+      msg += '\n\nCodigos con formato distinto a CLOS000: ' + r.codigosRaros.join(', ')
+    }
+    if (r.numerosFaltantes.length > 0) {
+      msg += '\n\nNumeros CLOS que no aparecen: ' +
+        r.numerosFaltantes.map(n => 'CLOS' + String(n).padStart(3, '0')).join(', ')
+    }
+    await sendTelegram(chatId, msg)
+  } catch (e) {
+    console.error('[Catalogo] Error:', e)
+    await sendTelegram(chatId, 'No pude leer el CSV: ' + (e instanceof Error ? e.message : 'error desconocido'))
+  }
+}
+
+// ---------- Endpoint ----------
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const message = body?.message
-    if (!message?.text) {
+    if (!message) {
       return NextResponse.json({ ok: true })
     }
 
     const chatId = message.chat.id
     const userId = message.from?.id
-    const userText = message.text
 
     // Bot cerrado: si no es Fer, no responde, no gasta API y no guarda nada
     if (userId !== FER_TELEGRAM_ID) {
+      return NextResponse.json({ ok: true })
+    }
+
+    // Si Fer envia un archivo CSV, se carga como catalogo (sin pasar por Claude)
+    const doc = message.document
+    if (doc) {
+      const nombre = String(doc.file_name || '').toLowerCase()
+      if (nombre.endsWith('.csv')) {
+        await cargarCatalogoDesdeCSV(chatId, doc.file_id)
+      } else {
+        await sendTelegram(chatId, 'Por ahora solo se leer archivos CSV (el catalogo de Label Engine).')
+      }
+      return NextResponse.json({ ok: true })
+    }
+
+    const userText = message.text
+    if (!userText) {
       return NextResponse.json({ ok: true })
     }
 
@@ -123,6 +289,16 @@ export async function POST(req: NextRequest) {
       if (saved) extraContext = '\n\n# INFO ADICIONAL GUARDADA POR FER\n' + saved
     } catch (e) {}
 
+    let catalogoContext = '\n\n# CATALOGO\nNo cargado todavia.'
+    try {
+      const catalogo = await redis.get<string>(CR_CATALOGO_KEY)
+      const fecha = await redis.get<string>(CR_CATALOGO_FECHA_KEY)
+      if (catalogo) {
+        catalogoContext = '\n\n# CATALOGO (cargado desde Label Engine el ' + (fecha || 'fecha desconocida') +
+          ', del mas nuevo al mas antiguo)\n' + catalogo
+      }
+    } catch (e) {}
+
     const wantsToSave = detectSaveIntent(userText)
 
     const saveInstruction = wantsToSave
@@ -137,7 +313,7 @@ export async function POST(req: NextRequest) {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: SYSTEM_PROMPT + extraContext + saveInstruction,
+      system: SYSTEM_PROMPT + catalogoContext + extraContext + saveInstruction,
       messages: history
     })
 

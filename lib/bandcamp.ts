@@ -29,6 +29,7 @@ export type BandcampData =
       moneda: string
       compradores: number
       topReleases: { item: string; ventas: number; neto: number }[]
+      porMes: { mes: string; ventas: number; neto: number }[]
       topPaises: { pais: string; ventas: number }[]
       recientes: BandcampVenta[]
       leidoEn: string
@@ -123,8 +124,12 @@ export async function getBandcampData(): Promise<BandcampData> {
     if (data.error) throw new Error(data.error_message || 'Error en sales_report')
 
     const report: any[] = data.report || []
-    // Solo pagos (los reembolsos traen bandcamp_related_transaction_id)
-    const pagos = report.filter(r => !r.bandcamp_related_transaction_id)
+    // Solo ventas reales: fuera payouts (transferencias de Bandcamp) y reembolsos/reversos
+    const pagos = report.filter(r =>
+      r.item_type !== 'payout' &&
+      !r.bandcamp_related_transaction_id &&
+      (Number(r.net_amount) || 0) > 0
+    )
 
     const neto = pagos.reduce((a, r) => a + (Number(r.net_amount) || 0), 0)
     const monedas = new Set(pagos.map(r => r.currency).filter(Boolean))
@@ -140,6 +145,17 @@ export async function getBandcampData(): Promise<BandcampData> {
       porRelease.set(k, cur)
       const p = r.country || 'Desconocido'
       porPais.set(p, (porPais.get(p) || 0) + 1)
+    }
+
+    const meses = new Map<string, { ventas: number; neto: number }>()
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i)
+      meses.set(d.toISOString().slice(0, 7), { ventas: 0, neto: 0 })
+    }
+    for (const r of pagos) {
+      const k = new Date(r.date).toISOString().slice(0, 7)
+      const m = meses.get(k)
+      if (m) { m.ventas += Number(r.quantity) || 1; m.neto += Number(r.net_amount) || 0 }
     }
 
     const recientes: BandcampVenta[] = pagos
@@ -171,6 +187,7 @@ export async function getBandcampData(): Promise<BandcampData> {
         .map(([pais, ventas]) => ({ pais, ventas }))
         .sort((a, b) => b.ventas - a.ventas)
         .slice(0, 5),
+      porMes: [...meses.entries()].map(([mes, v]) => ({ mes, ...v })),
       recientes,
       leidoEn: new Date().toISOString(),
     }

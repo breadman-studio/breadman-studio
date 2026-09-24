@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ClaroscuroData } from '@/lib/claroscuro-sheet'
+import type { BandcampData } from '@/lib/bandcamp'
+import BandcampBlock from './BandcampBlock'
 
 const T = {
   bg: '#111111', surface: '#1a1a1a', surfaceHover: '#202020',
@@ -151,33 +153,16 @@ const NAV = [
   { id:'dashboard', label:'Inicio', icon:'⊞' },
   { id:'ccsmart', label:'CC Smart', icon:'◉', color:T.cc, badge:'ACTIVO', route:'/panel/ccsmart' },
   { id:'claroscuro', label:'Claroscuro', icon:'◉', color:T.claroscuro, badge:'ACTIVO' },
-  { id:'bandcamp', label:'Bandcamp', icon:'◎', color:'#1DA0C3' },
   { id:'austral', label:'Austral', icon:'○', color:T.textDim, badge:'PRONTO' },
   { id:'agentes', label:'Agentes', icon:'⬡', sub:'1/12' },
   { id:'disenos', label:'Disenos', icon:'◈' },
   { id:'config', label:'Config', icon:'⊙' },
 ]
 
-export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData }) {
+export default function PanelClient({ claroscuro, bandcamp }: { claroscuro: ClaroscuroData, bandcamp: BandcampData }) {
   const router = useRouter()
   const [time, setTime] = useState('')
   const [seccion, setSeccion] = useState('dashboard')
-  const [bc, setBc] = useState<{sales:any[]|null, fans:number|null, revenue:number|null, loading:boolean}>({sales:null, fans:null, revenue:null, loading:false})
-
-  useEffect(() => {
-    if (seccion !== 'bandcamp') return
-    if (bc.sales !== null) return // ya cargado
-    setBc(s => ({...s, loading:true}))
-    Promise.all([
-      fetch('/api/bandcamp?endpoint=sales').then(r => r.json()),
-      fetch('/api/bandcamp?endpoint=fans').then(r => r.json()),
-    ]).then(([salesData, fansData]) => {
-      const sales = salesData.items || salesData.sale_report_items || []
-      const revenue = sales.reduce((acc: number, s: any) => acc + (parseFloat(s.amount_you_received_fmt?.replace(/[^0-9.]/g,'') || '0')), 0)
-      const fans = fansData.total_items || fansData.items?.length || 0
-      setBc({ sales: sales.slice(0, 20), fans, revenue, loading: false })
-    }).catch(() => setBc(s => ({...s, loading:false})))
-  }, [seccion])
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -290,7 +275,7 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
             <div style={{ fontSize:'12px', color:T.textMuted, marginTop:'2px' }}>{seccion === 'claroscuro' ? 'Sello electronico — datos de la planilla Panel Data' : 'Vision general — Breadman Studio'}</div>
           </div>
 
-          {seccion === 'claroscuro' ? <ClaroscuroView data={claroscuro} /> : (<>
+          {seccion === 'claroscuro' ? <><ClaroscuroView data={claroscuro} /><BandcampBlock data={bandcamp} /></> : (<>
 
           {/* CLIENTES */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:'14px', marginBottom:'20px' }}>
@@ -354,74 +339,6 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
 
           </div>
 
-          {seccion === 'bandcamp' && (<>
-            <div style={{ marginBottom:'8px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <span style={{ fontSize:'11px', color:T.textMuted, letterSpacing:'0.5px' }}>BANDCAMP · CLAROSCURO RECORDS</span>
-              <button onClick={() => setSeccion('dashboard')} style={{ background:'none', border:'none', color:T.textMuted, cursor:'pointer', fontSize:'13px' }}>← Volver</button>
-            </div>
-
-            {bc.loading && (
-              <div style={{ backgroundColor:T.surface, border:'1px solid '+T.border, borderRadius:'8px', padding:'32px', textAlign:'center', color:T.textMuted, fontSize:'13px', marginBottom:'16px' }}>
-                Cargando datos de Bandcamp...
-              </div>
-            )}
-
-            {!bc.loading && (
-              <>
-                {/* Métricas globales */}
-                <div style={{ backgroundColor:T.surface, border:'1px solid '+T.border, borderRadius:'8px', marginBottom:'16px' }}>
-                  <div style={{ padding:'12px 16px', borderBottom:'1px solid '+T.border }}>
-                    <span style={{ fontSize:'13px', fontWeight:600 }}>Resumen (últimos 3 meses)</span>
-                  </div>
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', borderBottom:'1px solid '+T.border }}>
-                    <div style={{ padding:'16px', borderRight:'1px solid '+T.border, textAlign:'center' }}>
-                      <div style={{ fontSize:'26px', fontWeight:800, color:T.text }}>{bc.sales?.length ?? '—'}</div>
-                      <div style={{ fontSize:'10px', color:T.textMuted, marginTop:'4px', letterSpacing:'0.3px' }}>VENTAS</div>
-                    </div>
-                    <div style={{ padding:'16px', borderRight:'1px solid '+T.border, textAlign:'center' }}>
-                      <div style={{ fontSize:'26px', fontWeight:800, color:T.ok }}>${bc.revenue?.toFixed(2) ?? '—'}</div>
-                      <div style={{ fontSize:'10px', color:T.textMuted, marginTop:'4px', letterSpacing:'0.3px' }}>INGRESOS</div>
-                    </div>
-                    <div style={{ padding:'16px', textAlign:'center' }}>
-                      <div style={{ fontSize:'26px', fontWeight:800, color:T.text }}>{bc.fans ?? '—'}</div>
-                      <div style={{ fontSize:'10px', color:T.textMuted, marginTop:'4px', letterSpacing:'0.3px' }}>FANS</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Ventas recientes */}
-                <div style={{ backgroundColor:T.surface, border:'1px solid '+T.border, borderRadius:'8px', marginBottom:'16px', overflow:'hidden' }}>
-                  <div style={{ padding:'12px 16px', borderBottom:'1px solid '+T.border }}>
-                    <span style={{ fontSize:'13px', fontWeight:600 }}>Ventas recientes</span>
-                  </div>
-                  {bc.sales && bc.sales.length === 0 && (
-                    <div style={{ padding:'24px', textAlign:'center', color:T.textMuted, fontSize:'13px' }}>Sin ventas en este período</div>
-                  )}
-                  {bc.sales && bc.sales.slice(0, 10).map((s: any, i: number) => (
-                    <div key={i} style={{ padding:'11px 16px', borderBottom:i<9?'1px solid '+T.border:'none', display:'flex', alignItems:'center', gap:'12px' }}>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:'12px', color:T.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                          {s.item_name || s.package_name || 'Release'}
-                        </div>
-                        <div style={{ fontSize:'11px', color:T.textMuted, marginTop:'2px' }}>
-                          {s.buyer_name || 'Fan'} · {s.country || ''}
-                        </div>
-                      </div>
-                      <div style={{ textAlign:'right', flexShrink:0 }}>
-                        <div style={{ fontSize:'13px', fontWeight:700, color:T.ok }}>
-                          {s.amount_you_received_fmt || s.amount_paid_fmt || '—'}
-                        </div>
-                        <div style={{ fontSize:'10px', color:T.textDim, marginTop:'2px' }}>
-                          {s.sale_date ? new Date(s.sale_date).toLocaleDateString('es-CL') : ''}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </>)}
-
           {/* AGENTES */}
           <div style={{ backgroundColor:T.surface, border:'1px solid '+T.border, borderRadius:'8px', marginBottom:'16px' }}>
             <div style={{ padding:'12px 16px', borderBottom:'1px solid '+T.border, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -475,7 +392,6 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
           { id:'dashboard', label:'Inicio', icon:'⊞' },
           { id:'ccsmart', label:'CC Smart', icon:'◉', color:T.cc, route:'/panel/ccsmart' },
           { id:'claroscuro', label:'Claroscuro', icon:'◉', color:T.claroscuro },
-          { id:'bandcamp', label:'Bandcamp', icon:'◎', color:'#1DA0C3' },
           { id:'agentes', label:'Agentes', icon:'⬡' },
           { id:'config', label:'Config', icon:'⊙' },
         ].map(item => (

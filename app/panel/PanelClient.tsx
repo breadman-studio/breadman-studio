@@ -151,6 +151,7 @@ const NAV = [
   { id:'dashboard', label:'Inicio', icon:'⊞' },
   { id:'ccsmart', label:'CC Smart', icon:'◉', color:T.cc, badge:'ACTIVO', route:'/panel/ccsmart' },
   { id:'claroscuro', label:'Claroscuro', icon:'◉', color:T.claroscuro, badge:'ACTIVO' },
+  { id:'bandcamp', label:'Bandcamp', icon:'◎', color:'#1DA0C3' },
   { id:'austral', label:'Austral', icon:'○', color:T.textDim, badge:'PRONTO' },
   { id:'agentes', label:'Agentes', icon:'⬡', sub:'1/12' },
   { id:'disenos', label:'Disenos', icon:'◈' },

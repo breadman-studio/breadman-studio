@@ -1,9 +1,10 @@
 // lib/bandcamp.ts
 // Lee el reporte de ventas de Bandcamp del lado del servidor.
 // Solo se usa desde app/panel/page.tsx (protegido por login).
-// Al navegador llega un resumen: nunca nombres ni emails de compradores.
+// Al navegador llegan las ventas SIN nombres ni emails: el comprador va como un código anónimo.
 
 import { Redis } from '@upstash/redis'
+import { createHash } from 'crypto'
 
 const redis = Redis.fromEnv()
 const K_ACCESS = 'cr:bc:access'
@@ -11,29 +12,22 @@ const K_REFRESH = 'cr:bc:refresh'
 const K_BAND = 'cr:bc:band_id'
 
 export type BandcampVenta = {
-  fecha: string
+  fecha: string      // ISO
   item: string
   artista: string
-  tipo: string
+  tipo: string       // track | album | package (merch) | ...
+  paquete: string
+  precio: number
+  extra: number      // lo que el fan pagó por sobre el precio
   neto: number
   moneda: string
   pais: string
+  origen: string     // de dónde llegó (referer)
+  comprador: string  // código anónimo para contar compradores únicos
 }
 
 export type BandcampData =
-  | {
-      ok: true
-      desde: string
-      ventas: number
-      neto: number
-      moneda: string
-      compradores: number
-      topReleases: { item: string; ventas: number; neto: number }[]
-      porMes: { mes: string; ventas: number; neto: number }[]
-      topPaises: { pais: string; ventas: number }[]
-      recientes: BandcampVenta[]
-      leidoEn: string
-    }
+  | { ok: true; ventas: BandcampVenta[]; leidoEn: string }
   | { ok: false; error: string }
 
 async function pedirToken(params: Record<string, string>) {
@@ -55,7 +49,7 @@ async function guardarTokens(t: { access_token: string; refresh_token: string; e
   await redis.set(K_REFRESH, t.refresh_token)
 }
 
-// Bandcamp solo permite UN grant activo: se pide con client_credentials una vez,
+// Bandcamp solo permite UN grant activo: se pide con client_credentials una vez
 // y después se renueva siempre con el refresh_token guardado en Redis.
 async function getAccessToken(): Promise<string> {
   const cached = await redis.get<string>(K_ACCESS)
@@ -106,6 +100,10 @@ function fmt(d: Date) {
   return d.toISOString().slice(0, 19).replace('T', ' ')
 }
 
+function anonimo(email: string) {
+  return email ? createHash('sha256').update(email.toLowerCase()).digest('hex').slice(0, 12) : ''
+}
+
 export async function getBandcampData(): Promise<BandcampData> {
   try {
     if (!process.env.BANDCAMP_CLIENT_ID || !process.env.BANDCAMP_CLIENT_SECRET) {
@@ -117,80 +115,30 @@ export async function getBandcampData(): Promise<BandcampData> {
     const desde = new Date()
     desde.setFullYear(desde.getFullYear() - 1)
 
-    const data = await api('sales/4/sales_report', token, {
-      band_id: bandId,
-      start_time: fmt(desde),
-    })
+    const data = await api('sales/4/sales_report', token, { band_id: bandId, start_time: fmt(desde) })
     if (data.error) throw new Error(data.error_message || 'Error en sales_report')
 
     const report: any[] = data.report || []
     // Solo ventas reales: fuera payouts (transferencias de Bandcamp) y reembolsos/reversos
-    const pagos = report.filter(r =>
-      r.item_type !== 'payout' &&
-      !r.bandcamp_related_transaction_id &&
-      (Number(r.net_amount) || 0) > 0
-    )
-
-    const neto = pagos.reduce((a, r) => a + (Number(r.net_amount) || 0), 0)
-    const monedas = new Set(pagos.map(r => r.currency).filter(Boolean))
-    const compradores = new Set(pagos.map(r => r.buyer_email).filter(Boolean)).size
-
-    const porRelease = new Map<string, { ventas: number; neto: number }>()
-    const porPais = new Map<string, number>()
-    for (const r of pagos) {
-      const k = r.item_name || 'Sin nombre'
-      const cur = porRelease.get(k) || { ventas: 0, neto: 0 }
-      cur.ventas += Number(r.quantity) || 1
-      cur.neto += Number(r.net_amount) || 0
-      porRelease.set(k, cur)
-      const p = r.country || 'Desconocido'
-      porPais.set(p, (porPais.get(p) || 0) + 1)
-    }
-
-    const meses = new Map<string, { ventas: number; neto: number }>()
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i)
-      meses.set(d.toISOString().slice(0, 7), { ventas: 0, neto: 0 })
-    }
-    for (const r of pagos) {
-      const k = new Date(r.date).toISOString().slice(0, 7)
-      const m = meses.get(k)
-      if (m) { m.ventas += Number(r.quantity) || 1; m.neto += Number(r.net_amount) || 0 }
-    }
-
-    const recientes: BandcampVenta[] = pagos
-      .slice()
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 10)
+    const ventas: BandcampVenta[] = report
+      .filter(r => r.item_type !== 'payout' && !r.bandcamp_related_transaction_id && (Number(r.net_amount) || 0) > 0)
       .map(r => ({
-        fecha: r.date,
-        item: r.item_name || '',
+        fecha: new Date(r.date).toISOString(),
+        item: r.item_name || 'Sin nombre',
         artista: r.artist || '',
-        tipo: r.item_type || '',
+        tipo: r.item_type || 'otro',
+        paquete: r.package || '',
+        precio: Number(r.item_price) || 0,
+        extra: Number(r.additional_fan_contribution) || 0,
         neto: Number(r.net_amount) || 0,
         moneda: r.currency || '',
-        pais: r.country || '',
+        pais: r.country || 'Desconocido',
+        origen: r.referer || '',
+        comprador: anonimo(r.buyer_email || ''),
       }))
+      .sort((a, b) => b.fecha.localeCompare(a.fecha))
 
-    return {
-      ok: true,
-      desde: desde.toISOString(),
-      ventas: pagos.reduce((a, r) => a + (Number(r.quantity) || 1), 0),
-      neto,
-      moneda: monedas.size === 1 ? [...monedas][0] : 'mixta',
-      compradores,
-      topReleases: [...porRelease.entries()]
-        .map(([item, v]) => ({ item, ...v }))
-        .sort((a, b) => b.ventas - a.ventas)
-        .slice(0, 5),
-      topPaises: [...porPais.entries()]
-        .map(([pais, ventas]) => ({ pais, ventas }))
-        .sort((a, b) => b.ventas - a.ventas)
-        .slice(0, 5),
-      porMes: [...meses.entries()].map(([mes, v]) => ({ mes, ...v })),
-      recientes,
-      leidoEn: new Date().toISOString(),
-    }
+    return { ok: true, ventas, leidoEn: new Date().toISOString() }
   } catch (e: any) {
     console.error('[Bandcamp]', e)
     return { ok: false, error: e?.message || 'Error leyendo Bandcamp' }

@@ -29,6 +29,23 @@ export type Statement = {
   estado: string
 }
 
+export type TopTrack = {
+  rank: number
+  isrc: string
+  artista: string
+  titulo: string
+  tienda: string
+  pais: string
+  streams: number
+  revenue: number
+}
+
+export type TiendaRevenue = {
+  tienda: string
+  revenue: number
+  tipo: string
+}
+
 export type ClaroscuroData = {
   ok: boolean
   error?: string
@@ -36,6 +53,10 @@ export type ClaroscuroData = {
   metricas: Metrica[]
   ventas: VentaBandcamp[]
   statements: Statement[]
+  topTracks: TopTrack[]
+  topTracksTitulo: string
+  tiendas: TiendaRevenue[]
+  tiendasTitulo: string
   resumen: {
     ventasBandcamp: number
     netoBandcamp: number
@@ -78,7 +99,8 @@ function buscarTabla(pestanas: string[][][], columnas: string[]) {
           if (!primera || primera.startsWith('total')) break
           datos.push(fila)
         }
-        return { idx, datos }
+        const titulo = String((filas[i - 1] || [])[0] || '')
+        return { idx, datos, titulo }
       }
     }
   }
@@ -150,6 +172,31 @@ export async function getClaroscuroData(): Promise<ClaroscuroData> {
         }))
       : []
 
+    // Top tracks Label Engine: rank | isrc | artista | titulo | tienda | pais | streams | revenue_usd
+    const tTop = buscarTabla(pestanas, ['isrc', 'tienda', 'revenue_usd'])
+    const topTracks: TopTrack[] = tTop
+      ? tTop.datos.map(f => ({
+          rank: num(f[tTop.idx['rank']]),
+          isrc: f[tTop.idx['isrc']] || '',
+          artista: f[tTop.idx['artista']] || '',
+          titulo: f[tTop.idx['titulo']] || '',
+          tienda: f[tTop.idx['tienda']] || '',
+          pais: f[tTop.idx['pais']] || '',
+          streams: num(f[tTop.idx['streams']]),
+          revenue: num(f[tTop.idx['revenue_usd']])
+        }))
+      : []
+
+    // Revenue por tienda: tienda | revenue_usd | porcentaje | tipo
+    const tTiendas = buscarTabla(pestanas, ['tienda', 'revenue_usd', 'porcentaje'])
+    const tiendas: TiendaRevenue[] = tTiendas
+      ? tTiendas.datos.map(f => ({
+          tienda: f[tTiendas.idx['tienda']] || '',
+          revenue: num(f[tTiendas.idx['revenue_usd']]),
+          tipo: f[tTiendas.idx['tipo']] || ''
+        }))
+      : []
+
     const pendientes = statements.filter(s => norm(s.estado).startsWith('pendiente'))
     const releases = metricas.find(m => norm(m.metrica).startsWith('releases'))
 
@@ -159,6 +206,10 @@ export async function getClaroscuroData(): Promise<ClaroscuroData> {
       metricas,
       ventas,
       statements,
+      topTracks,
+      topTracksTitulo: tTop?.titulo || '',
+      tiendas,
+      tiendasTitulo: tTiendas?.titulo || '',
       resumen: {
         ventasBandcamp: ventas.length,
         netoBandcamp: Math.round(ventas.reduce((a, v) => a + v.neto, 0) * 100) / 100,
@@ -176,6 +227,10 @@ export async function getClaroscuroData(): Promise<ClaroscuroData> {
       metricas: [],
       ventas: [],
       statements: [],
+      topTracks: [],
+      topTracksTitulo: '',
+      tiendas: [],
+      tiendasTitulo: '',
       resumen: VACIO
     }
   }

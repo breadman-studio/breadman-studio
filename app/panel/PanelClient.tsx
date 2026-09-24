@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ClaroscuroData } from '@/lib/claroscuro-sheet'
 import type { BandcampData } from '@/lib/bandcamp'
-import BandcampBlock from './BandcampBlock'
+import ClaroscuroView from './ClaroscuroView'
 
 const T = {
   bg: '#111111', surface: '#1a1a1a', surfaceHover: '#202020',
@@ -61,90 +61,21 @@ function horaCL(iso: string) {
   return new Date(iso).toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit', timeZone:'America/Santiago' })
 }
 
-function Tabla({ titulo, columnas, filas, vacio }: { titulo:string, columnas:string[], filas:(string|number)[][], vacio:string }) {
-  return (
-    <div style={{ backgroundColor:T.surface, border:'1px solid '+T.border, borderRadius:'8px', marginBottom:'16px', overflow:'hidden' }}>
-      <div style={{ padding:'12px 16px', borderBottom:'1px solid '+T.border }}>
-        <span style={{ fontSize:'13px', fontWeight:600 }}>{titulo}</span>
-      </div>
-      {filas.length === 0 ? (
-        <div style={{ padding:'14px 16px', fontSize:'12px', color:T.textMuted }}>{vacio}</div>
-      ) : (
-        <div style={{ overflowX:'auto' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
-            <thead>
-              <tr>
-                {columnas.map(c => (
-                  <th key={c} style={{ textAlign:'left', padding:'8px 16px', color:T.textDim, fontWeight:600, fontSize:'10px', letterSpacing:'0.8px', borderBottom:'1px solid '+T.border, whiteSpace:'nowrap' }}>{c.toUpperCase()}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filas.map((f, i) => (
-                <tr key={i}>
-                  {f.map((v, j) => (
-                    <td key={j} style={{ padding:'9px 16px', color: j === 0 ? T.text : T.textMuted, borderBottom: i < filas.length - 1 ? '1px solid '+T.border : 'none', whiteSpace: j === 0 ? 'normal' : 'nowrap' }}>{v}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  )
+const TITULOS: Record<string, [string, string]> = {
+  dashboard: ['Dashboard', 'Vision general — Breadman Studio'],
+  claroscuro: ['Claroscuro Records', 'Sello electronico — Bandcamp, Label Engine y redes'],
+  austral: ['Austral Arquitectura', 'Cliente en preparacion'],
+  agentes: ['Agentes IA', 'Ecosistema de agentes'],
+  disenos: ['Disenos', 'Piezas generadas por el motor grafico'],
+  config: ['Configuracion', 'Ajustes del panel'],
 }
 
-function ClaroscuroView({ data }: { data: ClaroscuroData }) {
-  if (!data.ok) {
-    return (
-      <div style={{ backgroundColor:T.surface, border:'1px solid '+T.error+'60', borderRadius:'8px', padding:'16px', fontSize:'13px', lineHeight:1.6 }}>
-        <div style={{ fontWeight:700, color:T.error, marginBottom:'6px' }}>No se pudo leer la planilla de Claroscuro</div>
-        <div style={{ color:T.textMuted }}>Revisa que la planilla Panel Data este compartida como Lector con la cuenta de servicio de Google.</div>
-        <div style={{ color:T.textDim, fontSize:'11px', marginTop:'8px' }}>Detalle: {data.error}</div>
-      </div>
-    )
-  }
-  const r = data.resumen
+function Proximamente({ titulo }: { titulo: string }) {
   return (
-    <div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:'10px', marginBottom:'16px' }}>
-        {[
-          { v: r.ventasBandcamp, l: 'Ventas Bandcamp' },
-          { v: usd(r.netoBandcamp), l: 'Neto Bandcamp' },
-          { v: usd(r.porCobrarLabelEngine), l: 'Por cobrar Label Engine', s: r.statementsPendientes + ' statements' },
-          { v: r.releases || '-', l: 'Releases (planilla)' },
-        ].map(m => (
-          <div key={m.l} style={{ backgroundColor:T.surface, border:'1px solid '+T.border, borderRadius:'8px' }}>
-            <MetricCard value={m.v} label={m.l} sub={m.s} />
-          </div>
-        ))}
-      </div>
-
-      <Tabla
-        titulo="Ultimas ventas Bandcamp"
-        columnas={['item', 'fecha', 'tipo', 'neto']}
-        filas={data.ventas.slice().reverse().slice(0, 10).map(v => [v.item, v.fecha, v.tipo, usd(v.neto)])}
-        vacio="No hay ventas en la planilla."
-      />
-
-      <Tabla
-        titulo="Statements Label Engine"
-        columnas={['periodo', 'monto', 'estado']}
-        filas={data.statements.map(st => [st.periodo, usd(st.monto), st.estado])}
-        vacio="No hay statements en la planilla."
-      />
-
-      <Tabla
-        titulo="Metricas del dashboard"
-        columnas={['metrica', 'valor', 'periodo', 'fuente']}
-        filas={data.metricas.map(m => [m.metrica, m.valor, m.periodo, m.fuente])}
-        vacio="No hay metricas en la planilla."
-      />
-
-      <div style={{ fontSize:'11px', color:T.textDim, marginBottom:'80px' }}>
-        Fuente: planilla Claroscuro Records {'\u2014'} Panel Data {'\u00b7'} leida a las {horaCL(data.leidoEn)}
-      </div>
+    <div style={{ backgroundColor:T.surface, border:'1px dashed '+T.borderLight, borderRadius:'12px', padding:'48px 24px', textAlign:'center', marginBottom:'80px' }}>
+      <div style={{ fontSize:'28px', color:T.textDim, marginBottom:'10px' }}>◌</div>
+      <div style={{ fontSize:'15px', fontWeight:700 }}>{titulo}</div>
+      <div style={{ fontSize:'12px', color:T.textMuted, marginTop:'6px' }}>Esta seccion todavia no tiene contenido.</div>
     </div>
   )
 }
@@ -178,13 +109,26 @@ export default function PanelClient({ claroscuro, bandcamp }: { claroscuro: Clar
   return (
     <div style={{ minHeight:'100vh', backgroundColor:T.bg, color:T.text, fontFamily:'Outfit, system-ui, sans-serif', display:'flex', flexDirection:'column' }}>
 
+      <style>{`
+        .pc-burger { display: none !important; }
+        .pc-mobnav { display: none !important; }
+        .pc-sidebar { position: relative; }
+        @media (max-width: 760px) {
+          .pc-burger { display: flex !important; }
+          .pc-mobnav { display: flex !important; }
+          .pc-sidebar { position: fixed !important; top: 48px; bottom: 0; left: 0; z-index: 50; transform: translateX(-100%); transition: transform .2s ease; }
+          .pc-sidebar.open { transform: translateX(0); }
+          .pc-main { padding-bottom: 80px !important; }
+        }
+      `}</style>
+
       {/* TOPBAR */}
       <div style={{ height:'48px', borderBottom:'1px solid '+T.border, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px', backgroundColor:T.bg, flexShrink:0, position:'sticky', top:0, zIndex:50 }}>
         <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
           {/* Hamburger mobile */}
           <button onClick={() => setMenuOpen(!menuOpen)}
             style={{ display:'flex', flexDirection:'column', gap:'4px', background:'none', border:'none', cursor:'pointer', padding:'6px', marginRight:'4px' }}
-            className="md-hide">
+            className="pc-burger">
             {[0,1,2].map(i => <div key={i} style={{ width:'16px', height:'1.5px', backgroundColor:T.textMuted }} />)}
           </button>
           <span style={{ fontSize:'15px', fontWeight:800, color:T.text, letterSpacing:'-0.5px' }}>Breadman</span>
@@ -214,15 +158,9 @@ export default function PanelClient({ claroscuro, bandcamp }: { claroscuro: Clar
         )}
 
         {/* SIDEBAR */}
-        <div style={{
+        <div className={'pc-sidebar' + (menuOpen ? ' open' : '')} style={{
           width:'220px', borderRight:'1px solid '+T.border, padding:'12px 0',
           display:'flex', flexDirection:'column', flexShrink:0, backgroundColor:T.bg,
-          position: menuOpen ? 'fixed' : 'relative',
-          left: menuOpen ? 0 : undefined,
-          top: menuOpen ? '48px' : undefined,
-          bottom: menuOpen ? 0 : undefined,
-          zIndex: menuOpen ? 50 : undefined,
-          transform: menuOpen ? 'translateX(0)' : undefined,
         }}>
           <div style={{ padding:'0 14px 12px', borderBottom:'1px solid '+T.border, marginBottom:'6px' }}>
             <div style={{ fontSize:'10px', color:T.textDim, letterSpacing:'1.5px', fontWeight:700 }}>ESPACIOS</div>
@@ -268,14 +206,14 @@ export default function PanelClient({ claroscuro, bandcamp }: { claroscuro: Clar
         </div>
 
         {/* MAIN */}
-        <div style={{ flex:1, overflow:'auto', padding:'20px 16px' }}>
+        <div className="pc-main" style={{ flex:1, overflow:'auto', padding:'20px 16px' }}>
 
           <div style={{ marginBottom:'20px' }}>
-            <div style={{ fontSize:'18px', fontWeight:700 }}>{seccion === 'claroscuro' ? 'Claroscuro Records' : 'Dashboard'}</div>
-            <div style={{ fontSize:'12px', color:T.textMuted, marginTop:'2px' }}>{seccion === 'claroscuro' ? 'Sello electronico — datos de la planilla Panel Data' : 'Vision general — Breadman Studio'}</div>
+            <div style={{ fontSize:'18px', fontWeight:700 }}>{(TITULOS[seccion] || TITULOS.dashboard)[0]}</div>
+            <div style={{ fontSize:'12px', color:T.textMuted, marginTop:'2px' }}>{(TITULOS[seccion] || TITULOS.dashboard)[1]}</div>
           </div>
 
-          {seccion === 'claroscuro' ? <><ClaroscuroView data={claroscuro} /><BandcampBlock data={bandcamp} /></> : (<>
+          {seccion === 'claroscuro' ? <ClaroscuroView data={claroscuro} bandcamp={bandcamp} /> : seccion !== 'dashboard' ? <Proximamente titulo={(TITULOS[seccion] || TITULOS.dashboard)[0]} /> : (<>
 
           {/* CLIENTES */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:'14px', marginBottom:'20px' }}>
@@ -378,16 +316,12 @@ export default function PanelClient({ claroscuro, bandcamp }: { claroscuro: Clar
           </>)}
 
           {/* BOTTOM NAV MOBILE */}
-          <div style={{ display:'none' }} id="mobile-nav" />
 
         </div>
       </div>
 
       {/* BARRA INFERIOR MOBILE */}
-      <style>{
-        '@media (max-width: 640px) { #mobile-nav { display: block !important; } }'
-      }</style>
-      <div id="mobile-nav" style={{ position:'fixed', bottom:0, left:0, right:0, height:'60px', backgroundColor:T.surface, borderTop:'1px solid '+T.border, display:'flex', alignItems:'center', justifyContent:'space-around', zIndex:50 }}>
+      <div className="pc-mobnav" style={{ position:'fixed', bottom:0, left:0, right:0, height:'60px', backgroundColor:T.surface, borderTop:'1px solid '+T.border, alignItems:'center', justifyContent:'space-around', zIndex:50 }}>
         {[
           { id:'dashboard', label:'Inicio', icon:'⊞' },
           { id:'ccsmart', label:'CC Smart', icon:'◉', color:T.cc, route:'/panel/ccsmart' },
@@ -395,7 +329,7 @@ export default function PanelClient({ claroscuro, bandcamp }: { claroscuro: Clar
           { id:'agentes', label:'Agentes', icon:'⬡' },
           { id:'config', label:'Config', icon:'⊙' },
         ].map(item => (
-          <button key={item.id} onClick={() => item.route ? router.push(item.route) : setSeccion(item.id)}
+          <button key={item.id} onClick={() => { if (item.route) { router.push(item.route) } else { setSeccion(item.id); setMenuOpen(false) } }}
             style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'3px', background:'none', border:'none', cursor:'pointer', padding:'8px 12px', flex:1, fontFamily:'Outfit, sans-serif' }}>
             <span style={{ fontSize:'16px', color:seccion===item.id?(item.color||T.breadman):T.textDim }}>{item.icon}</span>
             <span style={{ fontSize:'9px', letterSpacing:'0.3px', color:seccion===item.id?(item.color||T.text):T.textDim, fontWeight:seccion===item.id?700:400 }}>{item.label}</span>

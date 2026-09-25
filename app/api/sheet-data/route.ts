@@ -15,10 +15,12 @@ export async function GET() {
     // Inicializar la API de Sheets
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // ID de la hoja de cálculo (lo encuentras en la URL de tu Google Sheet)
-    const spreadsheetId = '1AwwzLc8gugZAY-UdzDJBDbURJ0Uy6Ucehf6in-cdPBA'; 
-    // Rango o pestaña que deseas consultar
-    const range = 'Untitled!A1:L100';
+    // CRM propio de Campo Capital: "Campo Capital — CRM Leads" (Drive de Fernando).
+    // Leído con la cuenta de servicio de Campo Capital (cc-smart, variable GSPAK).
+    // Antes apuntaba a la planilla de Claroscuro Records: se separó en sep 2026.
+    const spreadsheetId = '17vnEy9bmRLnirkKO19812BUnb8IczDBCGfXYyF3c8IM';
+    // Primera pestaña del archivo, columnas A-L
+    const range = 'A1:L5000';
 
     // Leer los datos de la planilla
     const response = await sheets.spreadsheets.values.get({

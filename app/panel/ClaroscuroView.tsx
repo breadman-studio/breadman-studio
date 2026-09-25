@@ -1,8 +1,7 @@
 'use client'
 // Vista Claroscuro del panel: submenú de botones a la izquierda + métricas visuales (sin tablas largas).
 import { useMemo, useState } from 'react'
-import type { ClaroscuroData } from '@/lib/claroscuro-sheet'
-import type { BandcampData, BandcampVenta } from '@/lib/bandcamp'
+import type { ClaroscuroData, VentaBandcamp, RedResumen, PostRed } from '@/lib/claroscuro-sheet'
 
 const C = {
   bg: '#111111', surface: '#1a1a1a', border: '#2a2a2a',
@@ -29,19 +28,6 @@ const TIPO_LABEL: Record<string, string> = { track: 'Tracks', album: 'Álbumes /
 
 function money(n: number) { return '$' + n.toFixed(2).replace('.', ',') }
 function mesCorto(d: Date) { return d.toLocaleDateString('es-CL', { month: 'short' }).replace('.', '') }
-
-// Normaliza el "referer" de Bandcamp a algo legible
-function origenLegible(o: string) {
-  const s = (o || '').toLowerCase()
-  if (!s) return 'Directo / sin dato'
-  if (s.includes('search')) return 'Búsqueda en Bandcamp'
-  if (s.includes('discover')) return 'Bandcamp Discover'
-  if (s.includes('fan') || s.includes('collection')) return 'Colección de otro fan'
-  if (s.includes('feed') || s.includes('follow')) return 'Feed / seguidores'
-  if (s.includes('daily') || s.includes('editorial')) return 'Bandcamp Daily'
-  if (s.includes('bandcamp')) return 'Dentro de Bandcamp'
-  return o.length > 30 ? o.slice(0, 30) + '…' : o
-}
 
 function contar<T>(arr: T[], key: (x: T) => string, val: (x: T) => number = () => 1) {
   const m = new Map<string, number>()
@@ -143,7 +129,7 @@ function Aviso({ texto }: { texto: string }) {
 }
 
 // ---------- lógica Bandcamp por período ----------
-function serie(ventas: BandcampVenta[], periodo: PeriodoId, campo: 'ventas' | 'neto') {
+function serie(ventas: VentaBandcamp[], periodo: PeriodoId, campo: 'ventas' | 'neto') {
   const hoy = new Date()
   const cubos: { label: string; key: string; valor: number }[] = []
   if (periodo === 'anio') {
@@ -160,28 +146,28 @@ function serie(ventas: BandcampVenta[], periodo: PeriodoId, campo: 'ventas' | 'n
   }
   const largo = periodo === 'anio' ? 7 : 10
   for (const v of ventas) {
+    if (!v.fecha) continue
     const c = cubos.find(x => x.key === v.fecha.slice(0, largo))
     if (c) c.valor += campo === 'ventas' ? 1 : v.neto
   }
   return cubos
 }
 
-function BandcampSeccion({ ventasTodas }: { ventasTodas: BandcampVenta[] }) {
+function BandcampSeccion({ ventasTodas }: { ventasTodas: VentaBandcamp[] }) {
   const [periodo, setPeriodo] = useState<PeriodoId>('mes')
   const dias = PERIODOS.find(p => p.id === periodo)!.dias
   const ventas = useMemo(() => {
     const desde = Date.now() - dias * 86400000
-    return ventasTodas.filter(v => new Date(v.fecha).getTime() >= desde)
+    return ventasTodas.filter(v => v.fecha && new Date(v.fecha).getTime() >= desde)
   }, [ventasTodas, dias])
 
   const neto = ventas.reduce((a, v) => a + v.neto, 0)
-  const compradores = new Set(ventas.map(v => v.comprador).filter(Boolean)).size
-  const conExtra = ventas.filter(v => v.extra > 0)
   const porItem = contar(ventas, v => v.item)
   const top = porItem[0]
   const topNeto = top ? ventas.filter(v => v.item === top.label).reduce((a, v) => a + v.neto, 0) : 0
   const topTipo = top ? ventas.find(v => v.item === top.label)?.tipo : ''
   const tipos = contar(ventas, v => v.tipo)
+  const releases = new Set(ventas.map(v => v.item)).size
 
   const grid = (min: number) => ({ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 12 })
 
@@ -201,7 +187,7 @@ function BandcampSeccion({ ventasTodas }: { ventasTodas: BandcampVenta[] }) {
     <div style={grid(140)}>
       <Kpi color={C.bc} value={ventas.length} label="Ventas" />
       <Kpi color={C.ok} value={money(neto)} label="Neto" />
-      <Kpi color={C.gold} value={compradores} label="Compradores" sub="únicos" />
+      <Kpi color={C.gold} value={releases} label="Títulos vendidos" sub="distintos" />
       <Kpi color={C.le} value={ventas.length ? money(neto / ventas.length) : '—'} label="Ticket promedio" />
     </div>
 
@@ -223,39 +209,75 @@ function BandcampSeccion({ ventasTodas }: { ventasTodas: BandcampVenta[] }) {
       <Card title="Qué compran" color={C.le}>
         <Segmentos items={tipos.map((t, i) => ({ label: TIPO_LABEL[t.label] || t.label, valor: t.valor, color: [C.bc, C.le, C.gold, C.redes][i % 4] }))} />
       </Card>
-      <Card title="Pagaron más de lo pedido" color={C.redes}>
-        {conExtra.length === 0 ? <Vacio texto="Nadie pagó extra en este período" /> : (<>
-          <div style={{ fontSize: 22, fontWeight: 800 }}>{conExtra.length} <span style={{ fontSize: 12, color: C.muted, fontWeight: 400 }}>compras · +{money(conExtra.reduce((a, v) => a + v.extra, 0))} extra</span></div>
-          <div style={{ fontSize: 11, color: C.muted, margin: '4px 0 12px' }}>Señal fuerte de que el release les gustó</div>
-          <Ranking color={C.redes} items={contar(conExtra, v => v.item).slice(0, 3)} />
-        </>)}
-      </Card>
-    </div>
-
-    <div style={grid(260)}>
       <Card title="Más vendidos" color={C.gold}>
         <Ranking color={C.gold} items={porItem.slice(0, 5).map(i => ({ ...i, extra: `${i.valor}` }))} />
       </Card>
-      <Card title="Cómo llegaron" color={C.bc}>
-        <Ranking colores={PALETA} items={contar(ventas, v => origenLegible(v.origen)).slice(0, 5)} />
-      </Card>
-      <Card title="Países" color={C.ok}>
-        <Ranking color={C.ok} items={contar(ventas, v => v.pais).slice(0, 5)} />
-      </Card>
     </div>
 
-    <div style={{ fontSize: 11, color: C.dim }}>Las reproducciones (plays) no están disponibles en la API de Bandcamp; solo se ven en su panel de estadísticas.</div>
+    <div style={{ fontSize: 11, color: C.dim }}>Datos del agente de ventas (cada 6 horas). Las reproducciones (plays) no están disponibles en la API de Bandcamp.</div>
+  </>)
+}
+
+// ---------- Redes (agente Meta Stats) ----------
+function RedesSeccion({ redes, posts }: { redes: RedResumen[]; posts: PostRed[] }) {
+  const grid = (min: number) => ({ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 12 })
+  const colorRed = (r: string) => /insta/i.test(r) ? C.redes : C.bc
+  const sinMetricasFinas = posts.length > 0 && posts.every(p => !p.alcance && !p.vistas)
+
+  if (redes.length === 0 && posts.length === 0) return <Vacio texto="Todavía no hay datos de redes en la planilla." />
+
+  return (<>
+    <div style={grid(170)}>
+      {redes.map(r => {
+        const primero = r.historial[0]
+        const delta = primero && r.historial.length > 1 ? r.seguidores - primero.seguidores : null
+        return (
+          <Kpi key={r.red} color={colorRed(r.red)} value={r.seguidores.toLocaleString('es-CL')} label={'Seguidores ' + r.red}
+            sub={delta !== null ? (delta >= 0 ? '+' : '') + delta + ' desde ' + new Date(primero.fecha).toLocaleDateString('es-CL') : (r.publicaciones !== null ? r.publicaciones + ' publicaciones' : undefined)} />
+        )
+      })}
+      {posts.length > 0 && (
+        <Kpi color={C.gold} value={posts.reduce((a, p) => a + p.meGusta, 0)} label="Me gusta" sub={'últimos ' + posts.length + ' posts'} />
+      )}
+    </div>
+
+    <Card title="Últimos posts" color={C.redes}>
+      {posts.length === 0 ? <Vacio texto="Sin posts registrados." /> : (
+        <div style={grid(200)}>
+          {posts.slice(0, 10).map(p => (
+            <a key={p.postId} href={p.link || undefined} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: C.text, background: C.bg, borderRadius: 10, padding: 12, borderLeft: '3px solid ' + colorRed(p.red), display: 'block' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontSize: 11, color: C.dim }}>{p.fechaPost ? new Date(p.fechaPost).toLocaleDateString('es-CL') : ''}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: colorRed(p.red), background: colorRed(p.red) + '1f', padding: '1px 7px', borderRadius: 10 }}>{p.red}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 13 }}>
+                <span>♥ <b>{p.meGusta}</b></span>
+                <span>💬 <b>{p.comentarios}</b></span>
+                {p.compartidos > 0 && <span>↗ <b>{p.compartidos}</b></span>}
+              </div>
+              {(p.alcance > 0 || p.vistas > 0) && (
+                <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{p.alcance > 0 ? 'Alcance ' + p.alcance : ''}{p.alcance > 0 && p.vistas > 0 ? ' · ' : ''}{p.vistas > 0 ? 'Vistas ' + p.vistas : ''}</div>
+              )}
+            </a>
+          ))}
+        </div>
+      )}
+    </Card>
+
+    {sinMetricasFinas && (
+      <div style={{ fontSize: 11, color: C.warn }}>Alcance, vistas y guardados aparecerán cuando Meta apruebe el App Review (permisos instagram_manage_insights y pages_read_user_content).</div>
+    )}
   </>)
 }
 
 // ---------- vista principal ----------
-export default function ClaroscuroView({ data, bandcamp }: { data: ClaroscuroData; bandcamp: BandcampData }) {
+export default function ClaroscuroView({ data }: { data: ClaroscuroData }) {
   const [sub, setSub] = useState('resumen')
-  const ventasBc = bandcamp.ok ? bandcamp.ventas : []
+  const ventasBc = data.ok ? data.ventas : []
+  const ig = data.ok ? data.redes.find(r => /insta/i.test(r.red)) : undefined
   const st = data.ok ? data.statements : []
   const pendiente = data.ok ? data.resumen.porCobrarLabelEngine : 0
   const pagado = st.filter(s => /pagad/i.test(s.estado)).reduce((a, s) => a + s.monto, 0)
-  const metricasRedes = data.ok ? data.metricas.filter(m => /instagram|facebook|meta|seguidor|spotify|soundcloud/i.test(m.metrica + ' ' + m.fuente)) : []
 
   const neto12 = ventasBc.reduce((a, v) => a + v.neto, 0)
   const tiendasSuma = data.ok ? data.tiendas.reduce((a, t) => a + t.revenue, 0) : 0
@@ -299,14 +321,14 @@ export default function ClaroscuroView({ data, bandcamp }: { data: ClaroscuroDat
 
         {sub === 'resumen' && (<>
           <div style={grid(150)}>
-            <Kpi color={C.bc} value={bandcamp.ok ? ventasBc.length : '—'} label="Ventas Bandcamp" sub="últimos 12 meses" />
-            <Kpi color={C.ok} value={bandcamp.ok ? money(neto12) : '—'} label="Neto Bandcamp" sub="últimos 12 meses" />
+            <Kpi color={C.bc} value={data.ok ? ventasBc.length : '—'} label="Ventas Bandcamp" sub="registradas" />
+            <Kpi color={C.ok} value={data.ok ? money(neto12) : '—'} label="Neto Bandcamp" sub="registrado" />
             <Kpi color={C.le} value={money(pendiente)} label="Por cobrar LE" sub={data.ok ? data.resumen.statementsPendientes + ' statements' : ''} />
-            <Kpi color={C.gold} value={data.ok ? (data.resumen.releases || '—') : '—'} label="Releases" sub="catálogo CLOS" />
+            <Kpi color={C.redes} value={ig ? ig.seguidores.toLocaleString('es-CL') : '—'} label="Seguidores IG" sub={ig ? '@claroscuro.records' : 'sin datos'} />
           </div>
           <div style={grid(280)}>
             <Card title="Ingresos Bandcamp por mes" color={C.bc}>
-              {bandcamp.ok ? <Barras datos={serie(ventasBc, 'anio', 'neto')} color={C.bc} formato={n => '$' + Math.round(n)} /> : <Vacio texto="Bandcamp sin conexión" />}
+              {data.ok ? <Barras datos={serie(ventasBc, 'anio', 'neto')} color={C.bc} formato={n => '$' + Math.round(n)} /> : <Vacio texto="Sin conexión con la planilla" />}
             </Card>
             <Card title="Statements Label Engine" color={C.le}>
               <Barras datos={st.slice(0, 12).reverse().map(s => ({ label: s.periodo.split(' ')[0], valor: s.monto }))} color={C.le} formato={n => '$' + Math.round(n)} />
@@ -314,7 +336,7 @@ export default function ClaroscuroView({ data, bandcamp }: { data: ClaroscuroDat
           </div>
         </>)}
 
-        {sub === 'bandcamp' && (bandcamp.ok ? <BandcampSeccion ventasTodas={ventasBc} /> : <Aviso texto={bandcamp.error} />)}
+        {sub === 'bandcamp' && (data.ok ? <BandcampSeccion ventasTodas={ventasBc} /> : <Aviso texto={data.error || 'No se pudo leer la planilla'} />)}
 
         {sub === 'labelengine' && (data.ok ? (<>
           <div style={grid(150)}>
@@ -377,21 +399,13 @@ export default function ClaroscuroView({ data, bandcamp }: { data: ClaroscuroDat
               </div>
             </Card>
           </div>
-          <div style={{ fontSize: 11, color: C.dim }}>Label Engine no tiene API: estos datos vienen de la planilla Panel Data. Top tracks y tiendas corresponden a un solo mes.</div>
+          <div style={{ fontSize: 11, color: C.dim }}>Label Engine no tiene API: estos datos se cargan a mano en la planilla del sello. Top tracks y tiendas corresponden a un solo mes.</div>
         </>) : <Aviso texto={data.error || 'No se pudo leer la planilla'} />)}
 
-        {sub === 'redes' && (data.ok ? (
-          metricasRedes.length ? (
-            <div style={grid(180)}>
-              {metricasRedes.map((m, i) => (
-                <Kpi key={m.metrica} color={[C.redes, C.bc, C.le, C.gold][i % 4]} value={m.valor} label={m.metrica} sub={`${m.fuente} · ${m.periodo}`} />
-              ))}
-            </div>
-          ) : <Vacio texto="No hay métricas de redes en la planilla." />
-        ) : <Aviso texto={data.error || 'No se pudo leer la planilla'} />)}
+        {sub === 'redes' && (data.ok ? <RedesSeccion redes={data.redes} posts={data.posts} /> : <Aviso texto={data.error || 'No se pudo leer la planilla'} />)}
 
         <div style={{ fontSize: 11, color: C.dim }}>
-          {bandcamp.ok ? 'Bandcamp en vivo · ' : ''}Planilla Panel Data · actualizado {new Date(data.leidoEn).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' })}
+          Planilla Claroscuro Records — Ventas y Redes · leída {new Date(data.leidoEn).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' })}
         </div>
       </div>
     </div>

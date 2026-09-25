@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ClaroscuroData } from '@/lib/claroscuro-sheet'
-import type { BandcampData } from '@/lib/bandcamp'
 import ClaroscuroView from './ClaroscuroView'
 
 const T = {
@@ -90,7 +89,7 @@ const NAV = [
   { id:'config', label:'Config', icon:'⊙' },
 ]
 
-export default function PanelClient({ claroscuro, bandcamp }: { claroscuro: ClaroscuroData, bandcamp: BandcampData }) {
+export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData }) {
   const router = useRouter()
   const [time, setTime] = useState('')
   const [seccion, setSeccion] = useState('dashboard')
@@ -213,7 +212,7 @@ export default function PanelClient({ claroscuro, bandcamp }: { claroscuro: Clar
             <div style={{ fontSize:'12px', color:T.textMuted, marginTop:'2px' }}>{(TITULOS[seccion] || TITULOS.dashboard)[1]}</div>
           </div>
 
-          {seccion === 'claroscuro' ? <ClaroscuroView data={claroscuro} bandcamp={bandcamp} /> : seccion !== 'dashboard' ? <Proximamente titulo={(TITULOS[seccion] || TITULOS.dashboard)[0]} /> : (<>
+          {seccion === 'claroscuro' ? <ClaroscuroView data={claroscuro} /> : seccion !== 'dashboard' ? <Proximamente titulo={(TITULOS[seccion] || TITULOS.dashboard)[0]} /> : (<>
 
           {/* CLIENTES */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:'14px', marginBottom:'20px' }}>
@@ -267,7 +266,7 @@ export default function PanelClient({ claroscuro, bandcamp }: { claroscuro: Clar
               </div>
               <div style={{ padding:'10px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                 <span style={{ fontSize:'11px', color: claroscuro.ok ? T.textDim : T.error }}>
-                  {claroscuro.ok ? 'Planilla Panel Data · ' + horaCL(claroscuro.leidoEn) : 'Sin conexion con la planilla'}
+                  {claroscuro.ok ? 'Planilla del sello · ' + horaCL(claroscuro.leidoEn) : 'Sin conexion con la planilla'}
                 </span>
                 <button onClick={() => setSeccion('claroscuro')} style={{ background:'none', border:'1px solid '+T.claroscuro+'60', color:T.claroscuro, padding:'4px 12px', borderRadius:'5px', cursor:'pointer', fontSize:'11px', fontFamily:'Outfit, sans-serif', fontWeight:600 }}>
                   Ver →

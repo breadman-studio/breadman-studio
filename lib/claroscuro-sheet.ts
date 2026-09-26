@@ -303,11 +303,14 @@ export async function getClaroscuroData(): Promise<ClaroscuroData> {
       ? await sheets.spreadsheets.values.batchGet({
           spreadsheetId: SPREADSHEET_ID,
           ranges: grandes.map(t => "'" + t + "'!A2:M100000"),
+          // valores sin formato: la planilla usa formato chileno (3.315 = tres mil), que se leería mal
+          valueRenderOption: 'UNFORMATTED_VALUE',
         })
       : null
     const valoresDe = (t: string) => {
       const i = grandes.indexOf(t)
-      return i === -1 ? [] : ((resG?.data.valueRanges?.[i]?.values || []) as string[][])
+      const filas = (resG?.data.valueRanges?.[i]?.values || []) as unknown[][]
+      return i === -1 ? [] : filas.map(r => r.map(v => (v === null || v === undefined ? '' : String(v))))
     }
 
     const catMap = new Map<string, FilaCatalogo>()
@@ -318,7 +321,7 @@ export async function getClaroscuroData(): Promise<ClaroscuroData> {
     }
     const filasReg: FilaRegalia[] = valoresDe('Regalias').map(r => ({
       rid: r[0] || '', rfecha: r[1] || '', mes: r[2] || '', isrc: (r[3] || '').trim(), artista: r[5] || '', titulo: r[6] || '',
-      mix: r[7] || '', tienda: r[8] || '', pais: r[9] || '', tipo: r[10] || '', cant: parseInt(r[11] || '0') || 0, usd: num(r[12]),
+      mix: r[7] || '', tienda: r[8] || '', pais: r[9] || '', tipo: r[10] || '', cant: Number(r[11]) || 0, usd: Number(r[12]) || 0,
     })).filter(f => f.rid)
 
     const porReporte = new Map<string, { id: string; fecha: string; usd: number; lineas: number }>()

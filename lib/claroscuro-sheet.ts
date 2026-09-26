@@ -97,7 +97,9 @@ export type RegaliasAgg = {
 export type Regalias = {
   reportes: { id: string; fecha: string; usd: number; lineas: number }[]
   ultimo: RegaliasAgg | null
-  total: RegaliasAgg | null
+  doce: RegaliasAgg | null      // últimos 12 statements
+  total: RegaliasAgg | null     // historia completa
+  porAnio: Item[]               // ingresos por año de venta (historia completa)
 }
 
 export type Catalogo = {
@@ -191,7 +193,7 @@ function vacio(leidoEn: string, error: string): ClaroscuroData {
     ok: false, error, leidoEn,
     ventas: [], statements: [], topTracks: [], topTracksTitulo: '',
     tiendas: [], tiendasTitulo: '', redes: [], posts: [],
-    regalias: { reportes: [], ultimo: null, total: null },
+    regalias: { reportes: [], ultimo: null, doce: null, total: null, porAnio: [] },
     catalogo: { releases: 0, tracks: 0, artistas: 0, ultimo: null, porAnio: [], conVentasUltimoReporte: 0 },
     ultimaVentaLeida: null, resumen: VACIO,
   }
@@ -334,10 +336,18 @@ export async function getClaroscuroData(): Promise<ClaroscuroData> {
     const reportes = [...porReporte.values()].map(r => ({ ...r, usd: Math.round(r.usd * 100) / 100 })).sort((a, b) => a.fecha.localeCompare(b.fecha))
     const ultimoRep = reportes[reportes.length - 1]
     const filasUltimo = ultimoRep ? filasReg.filter(f => f.rid === ultimoRep.id) : []
+    const idsDoce = new Set(reportes.slice(-12).map(r => r.id))
+    const porAnioMap = new Map<string, number>()
+    for (const f of filasReg) {
+      const anio = (f.mes || f.rfecha).slice(0, 4)
+      if (anio) porAnioMap.set(anio, (porAnioMap.get(anio) || 0) + f.usd)
+    }
     const regalias: Regalias = {
       reportes,
       ultimo: ultimoRep ? agregar(filasUltimo, catMap) : null,
+      doce: reportes.length ? agregar(filasReg.filter(f => idsDoce.has(f.rid)), catMap) : null,
       total: reportes.length ? agregar(filasReg, catMap) : null,
+      porAnio: [...porAnioMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([label, v]) => ({ label, valor: Math.round(v * 100) / 100 })),
     }
 
     const catRel = new Map<string, FilaCatalogo>()

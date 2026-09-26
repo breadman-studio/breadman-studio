@@ -278,7 +278,7 @@ function usd(n: number) {
 }
 
 function RegaliasSeccion({ regalias, catalogo }: { regalias: Regalias; catalogo: Catalogo }) {
-  const [alcance, setAlcance] = useState<'ultimo' | 'total'>('ultimo')
+  const [alcance, setAlcance] = useState<'ultimo' | 'doce' | 'total'>('ultimo')
   const grid = (min: number) => ({ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 12 })
 
   if (!regalias.total) {
@@ -292,7 +292,8 @@ function RegaliasSeccion({ regalias, catalogo }: { regalias: Regalias; catalogo:
     )
   }
 
-  const a = (alcance === 'ultimo' ? regalias.ultimo : regalias.total) as RegaliasAgg
+  const a = (alcance === 'ultimo' ? regalias.ultimo : alcance === 'doce' ? regalias.doce : regalias.total) as RegaliasAgg
+  const primerAnio = regalias.porAnio[0]?.label
   const ult = regalias.reportes[regalias.reportes.length - 1]
   const fechaRep = (f: string) => new Date(f + 'T12:00:00').toLocaleDateString('es-CL', { month: 'short', year: 'numeric' }).replace('.', '')
   const top = a.tracks[0]
@@ -302,7 +303,7 @@ function RegaliasSeccion({ regalias, catalogo }: { regalias: Regalias; catalogo:
 
   return (<>
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-      {([['ultimo', 'Último reporte · ' + fechaRep(ult.fecha)], ['total', 'Acumulado · ' + regalias.reportes.length + (regalias.reportes.length === 1 ? ' reporte' : ' reportes')]] as const).map(([id, label]) => {
+      {([['ultimo', 'Último reporte · ' + fechaRep(ult.fecha)], ['doce', 'Últimos 12 reportes'], ['total', 'Historia completa' + (primerAnio ? ' · desde ' + primerAnio : '')]] as const).map(([id, label]) => {
         const act = id === alcance
         return (
           <button key={id} onClick={() => setAlcance(id)} style={{ padding: '8px 16px', borderRadius: 20, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 13, fontWeight: 700, background: act ? C.ok : C.ok + '14', color: act ? '#111' : C.ok, border: '1px solid ' + (act ? C.ok : C.ok + '40') }}>
@@ -313,7 +314,7 @@ function RegaliasSeccion({ regalias, catalogo }: { regalias: Regalias; catalogo:
     </div>
 
     <div style={grid(150)}>
-      <Kpi color={C.ok} value={money(a.usd)} label="Ingresos netos" sub={alcance === 'ultimo' ? 'reporte ' + fechaRep(ult.fecha) : 'todos los reportes'} />
+      <Kpi color={C.ok} value={money(a.usd)} label="Ingresos netos" sub={alcance === 'ultimo' ? 'reporte ' + fechaRep(ult.fecha) : alcance === 'doce' ? 'últimos 12 reportes' : regalias.reportes.length + ' reportes'} />
       <Kpi color={C.le} value={a.unidades.toLocaleString('es-CL')} label="Reproducciones y ventas" />
       <Kpi color={C.gold} value={a.tiendas.length} label="Tiendas" sub={tiendaTop ? 'principal: ' + tiendaTop.label : ''} />
       <Kpi color={C.bc} value={a.paises.length === 12 ? '12+' : a.paises.length} label="Países" sub={a.paises[0] ? 'principal: ' + a.paises[0].label : ''} />
@@ -330,9 +331,15 @@ function RegaliasSeccion({ regalias, catalogo }: { regalias: Regalias; catalogo:
       </div>
     )}
 
+    {regalias.porAnio.length > 1 && (
+      <Card title="Ingresos por año de venta" color={C.ok}>
+        <Barras datos={regalias.porAnio} color={C.ok} formato={n => '$' + Math.round(n)} />
+      </Card>
+    )}
+
     {regalias.reportes.length > 1 && (
-      <Card title="Ingresos por reporte" color={C.ok}>
-        <Barras datos={regalias.reportes.map(r => ({ label: fechaRep(r.fecha), valor: r.usd }))} color={C.ok} formato={n => money(n)} />
+      <Card title={'Ingresos por statement · últimos ' + Math.min(24, regalias.reportes.length)} color={C.le}>
+        <Barras datos={regalias.reportes.slice(-24).map(r => ({ label: fechaRep(r.fecha), valor: r.usd }))} color={C.le} formato={n => '$' + n.toFixed(0)} />
       </Card>
     )}
 

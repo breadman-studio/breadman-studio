@@ -36,7 +36,7 @@ const ACTIVITY = [
 
 function Badge({ label, color }: { label:string, color:string }) {
   return (
-    <span style={{ display:'inline-flex', alignItems:'center', padding:'2px 8px', borderRadius:'4px', border:'1px solid '+color+'44', backgroundColor:color+'14', color:color, fontSize:'10px', fontWeight:700, letterSpacing:'0.8px', whiteSpace:'nowrap' }}>
+    <span style={{ display:'inline-flex', alignItems:'center', padding:'2px 8px', borderRadius:'4px', border:'1px solid '+color+'44', backgroundColor:color+'14', color:color, fontSize:'12px', fontWeight:700, letterSpacing:'0.8px', whiteSpace:'nowrap' }}>
       {label}
     </span>
   )
@@ -46,8 +46,8 @@ function MetricCard({ value, label, sub }: { value:string|number, label:string, 
   return (
     <div style={{ textAlign:'center', padding:'14px 8px' }}>
       <div style={{ fontSize:'28px', fontWeight:800, color:T.text, lineHeight:1 }}>{value}</div>
-      <div style={{ fontSize:'10px', color:T.textMuted, marginTop:'4px', letterSpacing:'0.3px' }}>{label}</div>
-      {sub && <div style={{ fontSize:'10px', color:T.textDim, marginTop:'2px' }}>{sub}</div>}
+      <div style={{ fontSize:'12px', color:T.textMuted, marginTop:'4px', letterSpacing:'0.3px' }}>{label}</div>
+      {sub && <div style={{ fontSize:'12px', color:T.textDim, marginTop:'2px' }}>{sub}</div>}
     </div>
   )
 }
@@ -74,7 +74,7 @@ function Proximamente({ titulo }: { titulo: string }) {
     <div style={{ backgroundColor:T.surface, border:'1px dashed '+T.borderLight, borderRadius:'12px', padding:'48px 24px', textAlign:'center', marginBottom:'80px' }}>
       <div style={{ fontSize:'28px', color:T.textDim, marginBottom:'10px' }}>◌</div>
       <div style={{ fontSize:'15px', fontWeight:700 }}>{titulo}</div>
-      <div style={{ fontSize:'12px', color:T.textMuted, marginTop:'6px' }}>Esta seccion todavia no tiene contenido.</div>
+      <div style={{ fontSize:'14px', color:T.textMuted, marginTop:'6px' }}>Esta seccion todavia no tiene contenido.</div>
     </div>
   )
 }
@@ -133,16 +133,16 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
           <span style={{ fontSize:'15px', fontWeight:800, color:T.text, letterSpacing:'-0.5px' }}>Breadman</span>
           <span style={{ fontSize:'15px', fontWeight:300, color:T.textMuted }}>Studio</span>
           <span style={{ color:T.border, margin:'0 4px' }}>/</span>
-          <span style={{ fontSize:'12px', color:T.textMuted, display:'none' }} id="breadcrumb">Dashboard</span>
+          <span style={{ fontSize:'14px', color:T.textMuted, display:'none' }} id="breadcrumb">Dashboard</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
-          <span style={{ fontSize:'11px', color:T.textDim }}>{time}</span>
+          <span style={{ fontSize:'13px', color:T.textDim }}>{time}</span>
           <div style={{ display:'flex', alignItems:'center', gap:'5px' }}>
             <div style={{ width:'6px', height:'6px', borderRadius:'50%', backgroundColor:T.ok }} />
-            <span style={{ fontSize:'10px', color:T.ok, fontWeight:700, letterSpacing:'0.5px' }}>ONLINE</span>
+            <span style={{ fontSize:'12px', color:T.ok, fontWeight:700, letterSpacing:'0.5px' }}>ONLINE</span>
           </div>
           <button onClick={() => fetch('/api/panel/logout',{method:'POST'}).then(()=>router.push('/panel/login'))}
-            style={{ background:'none', border:'1px solid '+T.border, color:T.textDim, padding:'4px 10px', borderRadius:'5px', cursor:'pointer', fontSize:'11px', fontFamily:'Outfit, sans-serif' }}>
+            style={{ background:'none', border:'1px solid '+T.border, color:T.textDim, padding:'4px 10px', borderRadius:'5px', cursor:'pointer', fontSize:'13px', fontFamily:'Outfit, sans-serif' }}>
             Salir
           </button>
         </div>
@@ -162,7 +162,7 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
           display:'flex', flexDirection:'column', flexShrink:0, backgroundColor:T.bg,
         }}>
           <div style={{ padding:'0 14px 12px', borderBottom:'1px solid '+T.border, marginBottom:'6px' }}>
-            <div style={{ fontSize:'10px', color:T.textDim, letterSpacing:'1.5px', fontWeight:700 }}>ESPACIOS</div>
+            <div style={{ fontSize:'12px', color:T.textDim, letterSpacing:'1.5px', fontWeight:700 }}>ESPACIOS</div>
           </div>
           {NAV.map(item => (
             <button key={item.id} onClick={() => navTo(item)}
@@ -172,20 +172,20 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
                 color: seccion===item.id ? T.text : T.textMuted,
                 backgroundColor: seccion===item.id ? T.surface : 'transparent',
                 borderLeft: seccion===item.id ? '2px solid '+T.breadman : '2px solid transparent',
-                fontSize:'13px', fontFamily:'Outfit, sans-serif', textAlign:'left', width:'100%',
+                fontSize:'15px', fontFamily:'Outfit, sans-serif', textAlign:'left', width:'100%',
               }}>
               <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
                 {item.color
                   ? <div style={{ width:'6px', height:'6px', borderRadius:'50%', backgroundColor:item.badge==='ACTIVO'?item.color:T.textDim, flexShrink:0 }} />
-                  : <span style={{ fontSize:'11px', color:T.textDim }}>{item.icon}</span>
+                  : <span style={{ fontSize:'13px', color:T.textDim }}>{item.icon}</span>
                 }
                 <div>
                   <div style={{ fontWeight:seccion===item.id?600:400 }}>{item.label}</div>
-                  {item.sub && <div style={{ fontSize:'10px', color:T.textDim }}>{item.sub}</div>}
+                  {item.sub && <div style={{ fontSize:'12px', color:T.textDim }}>{item.sub}</div>}
                 </div>
               </div>
               {item.badge && (
-                <span style={{ fontSize:'9px', fontWeight:700, padding:'1px 6px', borderRadius:'3px',
+                <span style={{ fontSize:'11px', fontWeight:700, padding:'1px 6px', borderRadius:'3px',
                   backgroundColor:item.badge==='ACTIVO'?(item.color+'20'):T.surface,
                   color:item.badge==='ACTIVO'?item.color:T.textDim,
                   border:'1px solid '+(item.badge==='ACTIVO'?item.color+'40':T.border) }}>
@@ -196,10 +196,10 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
           ))}
           <div style={{ flex:1 }} />
           <div style={{ padding:'12px 14px', borderTop:'1px solid '+T.border, display:'flex', alignItems:'center', gap:'10px' }}>
-            <div style={{ width:'28px', height:'28px', borderRadius:'50%', backgroundColor:T.breadman+'20', border:'1px solid '+T.breadman+'40', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:700, color:T.breadman, flexShrink:0 }}>F</div>
+            <div style={{ width:'28px', height:'28px', borderRadius:'50%', backgroundColor:T.breadman+'20', border:'1px solid '+T.breadman+'40', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:700, color:T.breadman, flexShrink:0 }}>F</div>
             <div>
-              <div style={{ fontSize:'12px', fontWeight:600, color:T.text }}>Fernando</div>
-              <div style={{ fontSize:'10px', color:T.textDim }}>Director</div>
+              <div style={{ fontSize:'14px', fontWeight:600, color:T.text }}>Fernando</div>
+              <div style={{ fontSize:'12px', color:T.textDim }}>Director</div>
             </div>
           </div>
         </div>
@@ -209,7 +209,7 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
 
           <div style={{ marginBottom:'20px' }}>
             <div style={{ fontSize:'18px', fontWeight:700 }}>{(TITULOS[seccion] || TITULOS.dashboard)[0]}</div>
-            <div style={{ fontSize:'12px', color:T.textMuted, marginTop:'2px' }}>{(TITULOS[seccion] || TITULOS.dashboard)[1]}</div>
+            <div style={{ fontSize:'14px', color:T.textMuted, marginTop:'2px' }}>{(TITULOS[seccion] || TITULOS.dashboard)[1]}</div>
           </div>
 
           {seccion === 'claroscuro' ? <ClaroscuroView data={claroscuro} /> : seccion !== 'dashboard' ? <Proximamente titulo={(TITULOS[seccion] || TITULOS.dashboard)[0]} /> : (<>
@@ -223,8 +223,8 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
                 <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
                   <div style={{ width:'3px', height:'30px', borderRadius:'2px', backgroundColor:T.cc }} />
                   <div>
-                    <div style={{ fontSize:'13px', fontWeight:700 }}>Campo Capital</div>
-                    <div style={{ fontSize:'11px', color:T.textMuted }}>Terrenos certificados</div>
+                    <div style={{ fontSize:'15px', fontWeight:700 }}>Campo Capital</div>
+                    <div style={{ fontSize:'13px', color:T.textMuted }}>Terrenos certificados</div>
                   </div>
                 </div>
                 <Badge label="CC SMART" color={T.cc} />
@@ -237,9 +237,9 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
                 <MetricCard value={0} label="Visitas" />
               </div>
               <div style={{ padding:'10px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                <span style={{ fontSize:'11px', color:T.textDim }}>Ultima pieza: hace 2h</span>
+                <span style={{ fontSize:'13px', color:T.textDim }}>Ultima pieza: hace 2h</span>
                 <button onClick={() => router.push('/panel/ccsmart')}
-                  style={{ background:'none', border:'1px solid '+T.cc+'60', color:T.cc, padding:'4px 12px', borderRadius:'5px', cursor:'pointer', fontSize:'11px', fontFamily:'Outfit, sans-serif', fontWeight:600 }}>
+                  style={{ background:'none', border:'1px solid '+T.cc+'60', color:T.cc, padding:'4px 12px', borderRadius:'5px', cursor:'pointer', fontSize:'13px', fontFamily:'Outfit, sans-serif', fontWeight:600 }}>
                   Ver →
                 </button>
               </div>
@@ -251,8 +251,8 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
                 <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
                   <div style={{ width:'3px', height:'30px', borderRadius:'2px', backgroundColor:T.claroscuro }} />
                   <div>
-                    <div style={{ fontSize:'13px', fontWeight:700 }}>Claroscuro Records</div>
-                    <div style={{ fontSize:'11px', color:T.textMuted }}>Sello electronico</div>
+                    <div style={{ fontSize:'15px', fontWeight:700 }}>Claroscuro Records</div>
+                    <div style={{ fontSize:'13px', color:T.textMuted }}>Sello electronico</div>
                   </div>
                 </div>
                 <Badge label="SELLO" color={T.claroscuro} />
@@ -265,10 +265,10 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
                 <MetricCard value={claroscuro.ok ? usd(claroscuro.resumen.porCobrarLabelEngine) : '-'} label="Por cobrar LE" />
               </div>
               <div style={{ padding:'10px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                <span style={{ fontSize:'11px', color: claroscuro.ok ? T.textDim : T.error }}>
+                <span style={{ fontSize:'13px', color: claroscuro.ok ? T.textDim : T.error }}>
                   {claroscuro.ok ? 'Planilla del sello · ' + horaCL(claroscuro.leidoEn) : 'Sin conexion con la planilla'}
                 </span>
-                <button onClick={() => setSeccion('claroscuro')} style={{ background:'none', border:'1px solid '+T.claroscuro+'60', color:T.claroscuro, padding:'4px 12px', borderRadius:'5px', cursor:'pointer', fontSize:'11px', fontFamily:'Outfit, sans-serif', fontWeight:600 }}>
+                <button onClick={() => setSeccion('claroscuro')} style={{ background:'none', border:'1px solid '+T.claroscuro+'60', color:T.claroscuro, padding:'4px 12px', borderRadius:'5px', cursor:'pointer', fontSize:'13px', fontFamily:'Outfit, sans-serif', fontWeight:600 }}>
                   Ver →
                 </button>
               </div>
@@ -280,8 +280,8 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
           <div style={{ backgroundColor:T.surface, border:'1px solid '+T.border, borderRadius:'8px', marginBottom:'16px' }}>
             <div style={{ padding:'12px 16px', borderBottom:'1px solid '+T.border, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <div>
-                <span style={{ fontSize:'13px', fontWeight:600 }}>Agentes IA</span>
-                <span style={{ fontSize:'11px', color:T.textMuted, marginLeft:'8px' }}>1 de 12 activos</span>
+                <span style={{ fontSize:'15px', fontWeight:600 }}>Agentes IA</span>
+                <span style={{ fontSize:'13px', color:T.textMuted, marginLeft:'8px' }}>1 de 12 activos</span>
               </div>
               <Badge label="ECOSISTEMA" color={T.breadman} />
             </div>
@@ -290,8 +290,8 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
                 <div key={a.id} style={{ backgroundColor:T.bg, border:'1px solid '+(a.status==='active'?T.ok+'40':T.border), borderRadius:'6px', padding:'8px 10px', display:'flex', alignItems:'center', gap:'7px' }}>
                   <div style={{ width:'5px', height:'5px', borderRadius:'50%', backgroundColor:a.status==='active'?T.ok:T.textDim, flexShrink:0 }} />
                   <div style={{ minWidth:0 }}>
-                    <div style={{ fontSize:'10px', color:T.textDim }}>{a.id}</div>
-                    <div style={{ fontSize:'11px', fontWeight:600, color:a.status==='active'?T.text:T.textMuted, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.name}</div>
+                    <div style={{ fontSize:'12px', color:T.textDim }}>{a.id}</div>
+                    <div style={{ fontSize:'13px', fontWeight:600, color:a.status==='active'?T.text:T.textMuted, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.name}</div>
                   </div>
                 </div>
               ))}
@@ -301,13 +301,13 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
           {/* ACTIVIDAD */}
           <div style={{ backgroundColor:T.surface, border:'1px solid '+T.border, borderRadius:'8px' }}>
             <div style={{ padding:'12px 16px', borderBottom:'1px solid '+T.border }}>
-              <span style={{ fontSize:'13px', fontWeight:600 }}>Actividad reciente</span>
+              <span style={{ fontSize:'15px', fontWeight:600 }}>Actividad reciente</span>
             </div>
             {ACTIVITY.map((a, i) => (
               <div key={i} style={{ padding:'11px 16px', borderBottom:i<ACTIVITY.length-1?'1px solid '+T.border:'none', display:'flex', alignItems:'center', gap:'12px' }}>
                 <div style={{ width:'5px', height:'5px', borderRadius:'50%', backgroundColor:a.color, flexShrink:0 }} />
-                <span style={{ fontSize:'13px', color:T.text, flex:1 }}>{a.label}</span>
-                <span style={{ fontSize:'11px', color:T.textDim, whiteSpace:'nowrap' }}>{a.time}</span>
+                <span style={{ fontSize:'15px', color:T.text, flex:1 }}>{a.label}</span>
+                <span style={{ fontSize:'13px', color:T.textDim, whiteSpace:'nowrap' }}>{a.time}</span>
               </div>
             ))}
           </div>
@@ -331,7 +331,7 @@ export default function PanelClient({ claroscuro }: { claroscuro: ClaroscuroData
           <button key={item.id} onClick={() => { if (item.route) { router.push(item.route) } else { setSeccion(item.id); setMenuOpen(false) } }}
             style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'3px', background:'none', border:'none', cursor:'pointer', padding:'8px 12px', flex:1, fontFamily:'Outfit, sans-serif' }}>
             <span style={{ fontSize:'16px', color:seccion===item.id?(item.color||T.breadman):T.textDim }}>{item.icon}</span>
-            <span style={{ fontSize:'9px', letterSpacing:'0.3px', color:seccion===item.id?(item.color||T.text):T.textDim, fontWeight:seccion===item.id?700:400 }}>{item.label}</span>
+            <span style={{ fontSize:'11px', letterSpacing:'0.3px', color:seccion===item.id?(item.color||T.text):T.textDim, fontWeight:seccion===item.id?700:400 }}>{item.label}</span>
           </button>
         ))}
       </div>

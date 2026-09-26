@@ -41,8 +41,8 @@ function Kpi({ value, label, sub, color }: { value: string | number; label: stri
     <div style={{ background: `linear-gradient(160deg, ${color}26 0%, ${C.surface} 70%)`, border: '1px solid ' + color + '40', borderRadius: 12, padding: '18px 16px', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color }} />
       <div style={{ fontSize: 26, fontWeight: 800, color: C.text, lineHeight: 1.05, wordBreak: 'break-word' }}>{value}</div>
-      <div style={{ fontSize: 11, color, marginTop: 8, fontWeight: 700, letterSpacing: '0.4px', textTransform: 'uppercase' }}>{label}</div>
-      {sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>{sub}</div>}
+      <div style={{ fontSize: 13, color, marginTop: 8, fontWeight: 700, letterSpacing: '0.4px', textTransform: 'uppercase' }}>{label}</div>
+      {sub && <div style={{ fontSize: 13, color: C.muted, marginTop: 3 }}>{sub}</div>}
     </div>
   )
 }
@@ -53,7 +53,7 @@ function Card({ title, color, children, right }: { title: string; color: string;
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
-          <span style={{ fontSize: 13, fontWeight: 700 }}>{title}</span>
+          <span style={{ fontSize: 15, fontWeight: 700 }}>{title}</span>
         </div>
         {right}
       </div>
@@ -63,7 +63,7 @@ function Card({ title, color, children, right }: { title: string; color: string;
 }
 
 function Vacio({ texto }: { texto: string }) {
-  return <div style={{ fontSize: 12, color: C.muted, padding: '8px 0' }}>{texto}</div>
+  return <div style={{ fontSize: 14, color: C.muted, padding: '8px 0' }}>{texto}</div>
 }
 
 function Barras({ datos, color, formato }: { datos: { label: string; valor: number }[]; color: string; formato: (n: number) => string }) {
@@ -73,9 +73,9 @@ function Barras({ datos, color, formato }: { datos: { label: string; valor: numb
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: pocos ? 6 : 3, height: 150, paddingTop: 18 }}>
       {datos.map((d, i) => (
         <div key={i} title={`${d.label}: ${formato(d.valor)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', minWidth: 0 }}>
-          {pocos && <div style={{ fontSize: 9, color: C.muted, marginBottom: 4, whiteSpace: 'nowrap' }}>{d.valor > 0 ? formato(d.valor) : ''}</div>}
+          {pocos && <div style={{ fontSize: 11, color: C.muted, marginBottom: 4, whiteSpace: 'nowrap' }}>{d.valor > 0 ? formato(d.valor) : ''}</div>}
           <div style={{ width: '100%', maxWidth: 34, height: `${Math.max(2, (d.valor / max) * 100)}%`, background: d.valor > 0 ? `linear-gradient(180deg, ${color}, ${color}55)` : C.border, borderRadius: '5px 5px 2px 2px' }} />
-          <div style={{ fontSize: 9, color: C.dim, marginTop: 6, whiteSpace: 'nowrap', visibility: pocos || i % 5 === 0 ? 'visible' : 'hidden' }}>{d.label}</div>
+          <div style={{ fontSize: 11, color: C.dim, marginTop: 6, whiteSpace: 'nowrap', visibility: pocos || i % 5 === 0 ? 'visible' : 'hidden' }}>{d.label}</div>
         </div>
       ))}
     </div>
@@ -89,7 +89,7 @@ function Ranking({ items, color, colores }: { items: { label: string; valor: num
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {items.map((i, n) => (
         <div key={i.label}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, marginBottom: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 14, marginBottom: 4 }}>
             <span style={{ color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.label}</span>
             <span style={{ color: C.muted, flexShrink: 0 }}>{i.extra ?? i.valor}</span>
           </div>
@@ -113,7 +113,7 @@ function Segmentos({ items }: { items: { label: string; valor: number; color: st
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 12 }}>
         {items.map(i => (
-          <div key={i.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+          <div key={i.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: i.color }} />
             <span style={{ color: C.text }}>{i.label}</span>
             <span style={{ color: C.muted }}>{i.extra ?? i.valor} · {Math.round((i.valor / total) * 100)}%</span>
@@ -125,7 +125,7 @@ function Segmentos({ items }: { items: { label: string; valor: number; color: st
 }
 
 function Aviso({ texto }: { texto: string }) {
-  return <div style={{ background: C.surface, border: '1px solid ' + C.error + '55', borderRadius: 12, padding: 16, fontSize: 12, color: C.muted }}><b style={{ color: C.error }}>Sin conexión. </b>{texto}</div>
+  return <div style={{ background: C.surface, border: '1px solid ' + C.error + '55', borderRadius: 12, padding: 16, fontSize: 14, color: C.muted }}><b style={{ color: C.error }}>Sin conexión. </b>{texto}</div>
 }
 
 // ---------- lógica Bandcamp por período ----------
@@ -177,7 +177,7 @@ function BandcampSeccion({ ventasTodas }: { ventasTodas: VentaBandcamp[] }) {
       {PERIODOS.map(p => {
         const act = p.id === periodo
         return (
-          <button key={p.id} onClick={() => setPeriodo(p.id)} style={{ padding: '8px 16px', borderRadius: 20, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 12, fontWeight: 700, background: act ? C.bc : C.bc + '14', color: act ? '#111' : C.bc, border: '1px solid ' + (act ? C.bc : C.bc + '40') }}>
+          <button key={p.id} onClick={() => setPeriodo(p.id)} style={{ padding: '8px 16px', borderRadius: 20, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 14, fontWeight: 700, background: act ? C.bc : C.bc + '14', color: act ? '#111' : C.bc, border: '1px solid ' + (act ? C.bc : C.bc + '40') }}>
             {p.label}
           </button>
         )
@@ -195,9 +195,9 @@ function BandcampSeccion({ ventasTodas }: { ventasTodas: VentaBandcamp[] }) {
     <div style={{ background: `linear-gradient(120deg, ${C.gold}33, ${C.surface} 65%)`, border: '1px solid ' + C.gold + '55', borderRadius: 12, padding: 18, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
       <div style={{ fontSize: 30, color: C.gold }}>★</div>
       <div style={{ flex: 1, minWidth: 180 }}>
-        <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: '0.5px' }}>LO MÁS VENDIDO · {PERIODOS.find(p => p.id === periodo)!.label.toUpperCase()}</div>
+        <div style={{ fontSize: 13, color: C.gold, fontWeight: 700, letterSpacing: '0.5px' }}>LO MÁS VENDIDO · {PERIODOS.find(p => p.id === periodo)!.label.toUpperCase()}</div>
         <div style={{ fontSize: 17, fontWeight: 700, marginTop: 4 }}>{top ? top.label : 'Sin ventas en este período'}</div>
-        {top && <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>{top.valor} {top.valor === 1 ? 'venta' : 'ventas'} · {money(topNeto)} · {TIPO_LABEL[topTipo || ''] || topTipo}</div>}
+        {top && <div style={{ fontSize: 14, color: C.muted, marginTop: 3 }}>{top.valor} {top.valor === 1 ? 'venta' : 'ventas'} · {money(topNeto)} · {TIPO_LABEL[topTipo || ''] || topTipo}</div>}
       </div>
     </div>
 
@@ -214,7 +214,7 @@ function BandcampSeccion({ ventasTodas }: { ventasTodas: VentaBandcamp[] }) {
       </Card>
     </div>
 
-    <div style={{ fontSize: 11, color: C.dim }}>Datos del agente de ventas (cada 6 horas). Las reproducciones (plays) no están disponibles en la API de Bandcamp.</div>
+    <div style={{ fontSize: 13, color: C.dim }}>Datos del agente de ventas (cada 6 horas). Las reproducciones (plays) no están disponibles en la API de Bandcamp.</div>
   </>)
 }
 
@@ -247,16 +247,16 @@ function RedesSeccion({ redes, posts }: { redes: RedResumen[]; posts: PostRed[] 
           {posts.slice(0, 10).map(p => (
             <a key={p.postId} href={p.link || undefined} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: C.text, background: C.bg, borderRadius: 10, padding: 12, borderLeft: '3px solid ' + colorRed(p.red), display: 'block' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontSize: 11, color: C.dim }}>{p.fechaPost ? new Date(p.fechaPost).toLocaleDateString('es-CL') : ''}</span>
-                <span style={{ fontSize: 10, fontWeight: 700, color: colorRed(p.red), background: colorRed(p.red) + '1f', padding: '1px 7px', borderRadius: 10 }}>{p.red}</span>
+                <span style={{ fontSize: 13, color: C.dim }}>{p.fechaPost ? new Date(p.fechaPost).toLocaleDateString('es-CL') : ''}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: colorRed(p.red), background: colorRed(p.red) + '1f', padding: '1px 7px', borderRadius: 10 }}>{p.red}</span>
               </div>
-              <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 13 }}>
+              <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 15 }}>
                 <span>♥ <b>{p.meGusta}</b></span>
                 <span>💬 <b>{p.comentarios}</b></span>
                 {p.compartidos > 0 && <span>↗ <b>{p.compartidos}</b></span>}
               </div>
               {(p.alcance > 0 || p.vistas > 0) && (
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{p.alcance > 0 ? 'Alcance ' + p.alcance : ''}{p.alcance > 0 && p.vistas > 0 ? ' · ' : ''}{p.vistas > 0 ? 'Vistas ' + p.vistas : ''}</div>
+                <div style={{ fontSize: 13, color: C.muted, marginTop: 6 }}>{p.alcance > 0 ? 'Alcance ' + p.alcance : ''}{p.alcance > 0 && p.vistas > 0 ? ' · ' : ''}{p.vistas > 0 ? 'Vistas ' + p.vistas : ''}</div>
               )}
             </a>
           ))}
@@ -265,7 +265,7 @@ function RedesSeccion({ redes, posts }: { redes: RedResumen[]; posts: PostRed[] 
     </Card>
 
     {sinMetricasFinas && (
-      <div style={{ fontSize: 11, color: C.warn }}>Alcance, vistas y guardados aparecerán cuando Meta apruebe el App Review (permisos instagram_manage_insights y pages_read_user_content).</div>
+      <div style={{ fontSize: 13, color: C.warn }}>Alcance, vistas y guardados aparecerán cuando Meta apruebe el App Review (permisos instagram_manage_insights y pages_read_user_content).</div>
     )}
   </>)
 }
@@ -307,11 +307,11 @@ export default function ClaroscuroView({ data }: { data: ClaroscuroData }) {
             <button key={s.id} className="cr-btn" onClick={() => setSub(s.id)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'Outfit, sans-serif', fontSize: 13, fontWeight: act ? 700 : 500, textAlign: 'left',
+                fontFamily: 'Outfit, sans-serif', fontSize: 15, fontWeight: act ? 700 : 500, textAlign: 'left',
                 background: act ? s.color : s.color + '14', color: act ? '#111' : s.color,
                 border: '1px solid ' + (act ? s.color : s.color + '40'), transition: 'all .15s',
               }}>
-              <span style={{ fontSize: 14 }}>{s.icon}</span>{s.label}
+              <span style={{ fontSize: 15 }}>{s.icon}</span>{s.label}
             </button>
           )
         })}
@@ -346,13 +346,13 @@ export default function ClaroscuroView({ data }: { data: ClaroscuroData }) {
           </div>
 
           <Card title={'Revenue por tienda' + (data.tiendasTitulo.match(/\w+ \d{4}/) ? ' · ' + data.tiendasTitulo.match(/\w+ \d{4}/)![0] : '')} color={C.gold}
-            right={<div style={{ display: 'flex', gap: 12, fontSize: 11, color: C.muted }}>
+            right={<div style={{ display: 'flex', gap: 12, fontSize: 13, color: C.muted }}>
               <span><span style={{ color: C.gold }}>■</span> venta</span><span><span style={{ color: C.le }}>■</span> stream</span><span><span style={{ color: C.bc }}>■</span> suscripción</span>
             </div>}>
             {data.tiendas.length === 0 ? <Vacio texto="No hay tabla de tiendas en la planilla" /> : (<>
               <Ranking items={data.tiendas.filter(t => !/^total/i.test(t.tienda)).map(t => ({ label: t.tienda, valor: t.revenue, extra: `${money(t.revenue)} · ${tiendasSuma ? Math.round((t.revenue / tiendasSuma) * 100) : 0}%` }))}
                 colores={data.tiendas.filter(t => !/^total/i.test(t.tienda)).map(t => colorTipo(t.tipo))} />
-              {tiendasNoCalza && <div style={{ fontSize: 11, color: C.warn, marginTop: 12 }}>Ojo: las tiendas suman {money(tiendasSuma)}, pero el statement del mes es ${tituloTotal}. Los porcentajes son sobre {money(tiendasSuma)}.</div>}
+              {tiendasNoCalza && <div style={{ fontSize: 13, color: C.warn, marginTop: 12 }}>Ojo: las tiendas suman {money(tiendasSuma)}, pero el statement del mes es ${tituloTotal}. Los porcentajes son sobre {money(tiendasSuma)}.</div>}
             </>)}
           </Card>
 
@@ -362,12 +362,12 @@ export default function ClaroscuroView({ data }: { data: ClaroscuroData }) {
                 {data.topTracks.slice(0, 9).map((t, i) => (
                   <div key={t.isrc + i} style={{ background: C.bg, borderRadius: 10, padding: 12, borderLeft: '3px solid ' + colorTipo(/beatport|itunes/i.test(t.tienda) ? 'venta' : 'stream') }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                      <span style={{ fontSize: 11, color: C.dim }}>#{t.rank || i + 1}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: C.le, background: C.le + '1f', padding: '1px 7px', borderRadius: 10 }}>{t.tienda}</span>
+                      <span style={{ fontSize: 13, color: C.dim }}>#{t.rank || i + 1}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.le, background: C.le + '1f', padding: '1px 7px', borderRadius: 10 }}>{t.tienda}</span>
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 600, marginTop: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.titulo}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{t.artista} · {t.pais}</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 12 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.titulo}</div>
+                    <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{t.artista} · {t.pais}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 14 }}>
                       <span style={{ color: C.muted }}>{t.streams} {/beatport|itunes/i.test(t.tienda) ? 'ventas' : 'streams'}</span>
                       <span style={{ fontWeight: 800, color: C.ok }}>{money(t.revenue)}</span>
                     </div>
@@ -382,7 +382,7 @@ export default function ClaroscuroView({ data }: { data: ClaroscuroData }) {
               <Ranking color={C.ok} items={contar(data.topTracks, t => t.pais, t => t.revenue).slice(0, 6).map(p => ({ ...p, extra: money(p.valor) }))} />
             </Card>
             <Card title="Statements por mes" color={C.le} right={
-              <div style={{ display: 'flex', gap: 12, fontSize: 11, color: C.muted }}>
+              <div style={{ display: 'flex', gap: 12, fontSize: 13, color: C.muted }}>
                 <span><span style={{ color: C.le }}>■</span> pendiente</span><span><span style={{ color: C.ok }}>■</span> pagado</span>
               </div>}>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 150, paddingTop: 10 }}>
@@ -392,19 +392,19 @@ export default function ClaroscuroView({ data }: { data: ClaroscuroData }) {
                   return (
                     <div key={s.periodo} title={`${s.periodo}: ${money(s.monto)} (${s.estado})`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', minWidth: 0 }}>
                       <div style={{ width: '100%', maxWidth: 26, height: `${Math.max(3, (s.monto / max) * 100)}%`, background: `linear-gradient(180deg, ${col}, ${col}55)`, borderRadius: '5px 5px 2px 2px' }} />
-                      <div style={{ fontSize: 8, color: C.dim, marginTop: 5, whiteSpace: 'nowrap' }}>{s.periodo.split(' ')[0]}</div>
+                      <div style={{ fontSize: 11, color: C.dim, marginTop: 5, whiteSpace: 'nowrap' }}>{s.periodo.split(' ')[0]}</div>
                     </div>
                   )
                 })}
               </div>
             </Card>
           </div>
-          <div style={{ fontSize: 11, color: C.dim }}>Label Engine no tiene API: estos datos se cargan a mano en la planilla del sello. Top tracks y tiendas corresponden a un solo mes.</div>
+          <div style={{ fontSize: 13, color: C.dim }}>Label Engine no tiene API: estos datos se cargan a mano en la planilla del sello. Top tracks y tiendas corresponden a un solo mes.</div>
         </>) : <Aviso texto={data.error || 'No se pudo leer la planilla'} />)}
 
         {sub === 'redes' && (data.ok ? <RedesSeccion redes={data.redes} posts={data.posts} /> : <Aviso texto={data.error || 'No se pudo leer la planilla'} />)}
 
-        <div style={{ fontSize: 11, color: C.dim }}>
+        <div style={{ fontSize: 13, color: C.dim }}>
           Planilla Claroscuro Records — Ventas y Redes · leída {new Date(data.leidoEn).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' })}
         </div>
       </div>

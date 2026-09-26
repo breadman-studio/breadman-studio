@@ -101,13 +101,13 @@ export default function CCSmartPanel() {
         <LogoCCSmart size={0.55} />
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar lead..."
-            style={{ backgroundColor: C_CARD, border: '1px solid ' + C_BORDE, color: C_TEXTO, padding: '7px 14px', borderRadius: '6px', fontSize: '14px', width: '180px', fontFamily: 'Outfit, sans-serif', outline: 'none' }} />
+            style={{ backgroundColor: C_CARD, border: '1px solid ' + C_BORDE, color: C_TEXTO, padding: '7px 14px', borderRadius: '6px', fontSize: '15px', width: '180px', fontFamily: 'Outfit, sans-serif', outline: 'none' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: C_VERDE }} />
-            <span style={{ fontSize: '11px', color: C_VERDE, letterSpacing: '1px', fontWeight: 700 }}>ONLINE</span>
+            <span style={{ fontSize: '13px', color: C_VERDE, letterSpacing: '1px', fontWeight: 700 }}>ONLINE</span>
           </div>
           <button onClick={() => fetch('/api/panel/logout', { method: 'POST' }).then(() => router.push('/panel/login'))}
-            style={{ background: 'none', border: '1px solid ' + C_BORDE, color: '#555', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontFamily: 'Outfit, sans-serif', letterSpacing: '1px' }}>
+            style={{ background: 'none', border: '1px solid ' + C_BORDE, color: '#555', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontFamily: 'Outfit, sans-serif', letterSpacing: '1px' }}>
             SALIR
           </button>
         </div>
@@ -118,12 +118,12 @@ export default function CCSmartPanel() {
         <div style={{ display: 'flex', gap: '28px' }}>
           {[['embudo','EMBUDO'],['lista','LISTA']].map(([v, label]) => (
             <button key={v} onClick={() => setVista(v as 'embudo'|'lista')}
-              style={{ background: 'none', border: 'none', color: vista === v ? C_TERRA : '#444', cursor: 'pointer', fontSize: '11px', letterSpacing: '2px', fontWeight: 700, fontFamily: 'Outfit, sans-serif', borderBottom: vista === v ? '2px solid ' + C_TERRA : '2px solid transparent', height: '44px', padding: '0 2px' }}>
+              style={{ background: 'none', border: 'none', color: vista === v ? C_TERRA : '#444', cursor: 'pointer', fontSize: '13px', letterSpacing: '2px', fontWeight: 700, fontFamily: 'Outfit, sans-serif', borderBottom: vista === v ? '2px solid ' + C_TERRA : '2px solid transparent', height: '44px', padding: '0 2px' }}>
               {label}
             </button>
           ))}
         </div>
-        <button style={{ backgroundColor: C_TERRA, border: 'none', color: '#fff', padding: '7px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 700, fontFamily: 'Outfit, sans-serif', letterSpacing: '1px', margin: '4px 0' }}>
+        <button style={{ backgroundColor: C_TERRA, border: 'none', color: '#fff', padding: '7px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 700, fontFamily: 'Outfit, sans-serif', letterSpacing: '1px', margin: '4px 0' }}>
           + NUEVO LEAD
         </button>
       </div>
@@ -133,7 +133,7 @@ export default function CCSmartPanel() {
         {metricas.map((m, i) => (
           <div key={i} style={{ backgroundColor: C_CARD, border: '1px solid ' + C_BORDE, borderRadius: '10px', padding: '20px 16px', textAlign: 'center' }}>
             <div style={{ fontSize: '44px', fontWeight: 900, color: m.color, lineHeight: 1, marginBottom: '6px' }}>{m.val}</div>
-            <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#555', fontWeight: 700 }}>{m.label}</div>
+            <div style={{ fontSize: '12px', letterSpacing: '2px', color: '#555', fontWeight: 700 }}>{m.label}</div>
           </div>
         ))}
       </div>
@@ -141,12 +141,12 @@ export default function CCSmartPanel() {
       {/* TITULO + FILTRO ETAPA MOBILE */}
       <div style={{ padding: '0 20px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <div style={{ fontSize: '11px', color: '#333', letterSpacing: '2px', marginBottom: '4px' }}>PIPELINE / DATOS EN VIVO</div>
+          <div style={{ fontSize: '13px', color: '#333', letterSpacing: '2px', marginBottom: '4px' }}>PIPELINE / DATOS EN VIVO</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: C_TEXTO }}>{vista === 'embudo' ? 'Embudo de leads' : 'Lista de leads'}</div>
         </div>
         {vista === 'embudo' && (
           <select value={etapaActiva || ''} onChange={e => setEtapaActiva(e.target.value || null)}
-            style={{ backgroundColor: C_CARD, border: '1px solid ' + C_BORDE, color: C_TEXTO, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontFamily: 'Outfit, sans-serif' }}>
+            style={{ backgroundColor: C_CARD, border: '1px solid ' + C_BORDE, color: C_TEXTO, padding: '8px 12px', borderRadius: '6px', fontSize: '15px', fontFamily: 'Outfit, sans-serif' }}>
             <option value="">Todas las etapas</option>
             {ETAPAS.map(e => <option key={e} value={e}>{e} ({porEtapa(e).length})</option>)}
           </select>
@@ -154,7 +154,7 @@ export default function CCSmartPanel() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '80px', color: '#333', fontSize: '11px', letterSpacing: '3px' }}>CARGANDO...</div>
+        <div style={{ textAlign: 'center', padding: '80px', color: '#333', fontSize: '13px', letterSpacing: '3px' }}>CARGANDO...</div>
       ) : vista === 'embudo' ? (
         /* VISTA EMBUDO — columnas apiladas en mobile */
         <div style={{ padding: '0 20px 32px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
@@ -165,20 +165,20 @@ export default function CCSmartPanel() {
               <div key={etapa}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <div>
-                    <span style={{ fontSize: '10px', color: '#333', fontWeight: 700 }}>{String(numEtapa).padStart(2,'0')} </span>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: C_TEXTO }}>{etapa}</span>
+                    <span style={{ fontSize: '12px', color: '#333', fontWeight: 700 }}>{String(numEtapa).padStart(2,'0')} </span>
+                    <span style={{ fontSize: '15px', fontWeight: 700, color: C_TEXTO }}>{etapa}</span>
                   </div>
                   <span style={{ fontSize: '16px', fontWeight: 900, color: etapaLeads.length > 0 ? C_TERRA : '#333' }}>{etapaLeads.length}</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {etapaLeads.length === 0 ? (
-                    <div style={{ border: '1px dashed ' + C_BORDE, borderRadius: '8px', padding: '16px', textAlign: 'center', color: '#222', fontSize: '11px' }}>vacio</div>
+                    <div style={{ border: '1px dashed ' + C_BORDE, borderRadius: '8px', padding: '16px', textAlign: 'center', color: '#222', fontSize: '13px' }}>vacio</div>
                   ) : etapaLeads.map((lead, i) => (
                     <div key={i} style={{ backgroundColor: C_CARD, border: '1px solid ' + C_BORDE, borderRadius: '8px', padding: '14px', borderLeft: '3px solid ' + (CLASE_COLOR[lead.clase_lead] || C_BORDE) }}>
-                      <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '6px', color: C_TEXTO }}>{lead.nombre || 'Sin nombre'}</div>
-                      {lead.telefono && <div style={{ fontSize: '12px', color: '#555', marginBottom: '4px' }}>{lead.telefono}</div>}
-                      {lead.notas && <div style={{ fontSize: '12px', color: '#444', marginBottom: '8px', lineHeight: '1.4' }}>{lead.notas.slice(0,70)}{lead.notas.length > 70 ? '...' : ''}</div>}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#333' }}>
+                      <div style={{ fontWeight: 700, fontSize: '15px', marginBottom: '6px', color: C_TEXTO }}>{lead.nombre || 'Sin nombre'}</div>
+                      {lead.telefono && <div style={{ fontSize: '14px', color: '#555', marginBottom: '4px' }}>{lead.telefono}</div>}
+                      {lead.notas && <div style={{ fontSize: '14px', color: '#444', marginBottom: '8px', lineHeight: '1.4' }}>{lead.notas.slice(0,70)}{lead.notas.length > 70 ? '...' : ''}</div>}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#333' }}>
                         <span style={{ color: lead.clase_lead === 'A' ? C_TERRA : lead.clase_lead === 'B' ? C_VERDE : '#444', fontWeight: 700 }}>Clase {lead.clase_lead}</span>
                         <span>{lead.fecha_creacion ? new Date(lead.fecha_creacion).toLocaleDateString('es-CL') : ''}</span>
                       </div>
@@ -192,11 +192,11 @@ export default function CCSmartPanel() {
       ) : (
         /* VISTA LISTA */
         <div style={{ padding: '0 20px 32px', overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', minWidth: '500px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px', minWidth: '500px' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid ' + C_BORDE }}>
                 {['','Nombre','Telefono','Proyecto','Etapa','Fecha'].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', color: '#444', fontSize: '10px', letterSpacing: '2px', fontWeight: 700 }}>{h}</th>
+                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', color: '#444', fontSize: '12px', letterSpacing: '2px', fontWeight: 700 }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -210,9 +210,9 @@ export default function CCSmartPanel() {
                   <td style={{ padding: '12px 14px', color: '#555' }}>{lead.telefono || '-'}</td>
                   <td style={{ padding: '12px 14px', color: C_VERDE }}>{lead.proyecto || '-'}</td>
                   <td style={{ padding: '12px 14px' }}>
-                    <span style={{ padding: '3px 8px', borderRadius: '4px', backgroundColor: C_CARD, color: C_TEXTO, fontSize: '12px', border: '1px solid ' + C_BORDE }}>{lead.etapa || '-'}</span>
+                    <span style={{ padding: '3px 8px', borderRadius: '4px', backgroundColor: C_CARD, color: C_TEXTO, fontSize: '14px', border: '1px solid ' + C_BORDE }}>{lead.etapa || '-'}</span>
                   </td>
-                  <td style={{ padding: '12px 14px', color: '#444', fontSize: '12px' }}>{lead.fecha_creacion ? new Date(lead.fecha_creacion).toLocaleDateString('es-CL') : '-'}</td>
+                  <td style={{ padding: '12px 14px', color: '#444', fontSize: '14px' }}>{lead.fecha_creacion ? new Date(lead.fecha_creacion).toLocaleDateString('es-CL') : '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -220,7 +220,7 @@ export default function CCSmartPanel() {
         </div>
       )}
 
-      <div style={{ borderTop: '1px solid ' + C_BORDE, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#333', letterSpacing: '1px', flexWrap: 'wrap', gap: '8px' }}>
+      <div style={{ borderTop: '1px solid ' + C_BORDE, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#333', letterSpacing: '1px', flexWrap: 'wrap', gap: '8px' }}>
         <span>SMART CC / GESTION OPERATIVA</span>
         <span>© BREADMAN STUDIO IA</span>
       </div>

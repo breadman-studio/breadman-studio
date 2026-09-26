@@ -78,6 +78,37 @@ export type PostRed = {
   fechaConsulta: string
 }
 
+export type Item = { label: string; valor: number; unidades?: number; extra?: string }
+
+export type RegaliasAgg = {
+  usd: number
+  unidades: number
+  lineas: number
+  tiendas: Item[]
+  paises: Item[]
+  artistas: Item[]
+  tracks: (Item & { artista: string; catalogo: string })[]
+  releases: (Item & { catalogo: string })[]
+  tipos: Item[]
+  anioLanzamiento: Item[]
+  mesesVenta: Item[]
+}
+
+export type Regalias = {
+  reportes: { id: string; fecha: string; usd: number; lineas: number }[]
+  ultimo: RegaliasAgg | null
+  total: RegaliasAgg | null
+}
+
+export type Catalogo = {
+  releases: number
+  tracks: number
+  artistas: number
+  ultimo: { codigo: string; fecha: string; titulo: string } | null
+  porAnio: Item[]
+  conVentasUltimoReporte: number
+}
+
 export type ClaroscuroData = {
   ok: boolean
   error?: string
@@ -90,6 +121,8 @@ export type ClaroscuroData = {
   tiendasTitulo: string
   redes: RedResumen[]
   posts: PostRed[]
+  regalias: Regalias
+  catalogo: Catalogo
   ultimaVentaLeida: string | null   // fecha de la venta más reciente en la planilla
   resumen: {
     ventasBandcamp: number
@@ -158,7 +191,82 @@ function vacio(leidoEn: string, error: string): ClaroscuroData {
     ok: false, error, leidoEn,
     ventas: [], statements: [], topTracks: [], topTracksTitulo: '',
     tiendas: [], tiendasTitulo: '', redes: [], posts: [],
+    regalias: { reportes: [], ultimo: null, total: null },
+    catalogo: { releases: 0, tracks: 0, artistas: 0, ultimo: null, porAnio: [], conVentasUltimoReporte: 0 },
     ultimaVentaLeida: null, resumen: VACIO,
+  }
+}
+
+// ---------- Regalías (reportes mensuales de Label Engine / Pressology) ----------
+// Pestaña "Regalias" (la llena el bot del sello): reporte_id | reporte_fecha | mes_venta | isrc | upc |
+// artista | titulo | mix | tienda | pais | tipo | cantidad | usd
+// Pestaña "Catalogo" (la llena el bot con el publishing export): catalogo | fecha_lanzamiento | upc |
+// artista_release | titulo_release | isrc | artista_track | titulo_track | mix
+
+const TABS_GRANDES = ['Regalias', 'Catalogo']
+
+type FilaRegalia = { rid: string; rfecha: string; mes: string; isrc: string; artista: string; titulo: string; mix: string; tienda: string; pais: string; tipo: string; cant: number; usd: number }
+type FilaCatalogo = { codigo: string; fecha: string; artista: string; titulo: string; isrc: string }
+
+// CLOS41 -> CLOS041 (hay códigos mal escritos en el distribuidor)
+function codigoNormal(c: string) {
+  const m = c.match(/^CLOS(\d{1,2})$/i)
+  return m ? 'CLOS' + m[1].padStart(3, '0') : c
+}
+
+const TIPO_REGALIA: Record<string, string> = { Streaming: 'Streaming', Download: 'Descargas', 'Ad-Revenue': 'Publicidad (YouTube)' }
+
+function top(mapa: Map<string, { valor: number; unidades: number }>, n: number): Item[] {
+  return [...mapa.entries()]
+    .map(([label, v]) => ({ label, valor: Math.round(v.valor * 10000) / 10000, unidades: v.unidades }))
+    .sort((a, b) => b.valor - a.valor)
+    .slice(0, n)
+}
+
+function sumar(mapa: Map<string, { valor: number; unidades: number }>, k: string, usd: number, cant: number) {
+  const v = mapa.get(k) || { valor: 0, unidades: 0 }
+  v.valor += usd
+  v.unidades += cant
+  mapa.set(k, v)
+}
+
+function agregar(filas: FilaRegalia[], cat: Map<string, FilaCatalogo>): RegaliasAgg {
+  const tiendas = new Map(), paises = new Map(), artistas = new Map(), tipos = new Map(), anios = new Map(), meses = new Map()
+  const tracks = new Map<string, { valor: number; unidades: number }>()
+  const tracksInfo = new Map<string, { artista: string; catalogo: string }>()
+  const releases = new Map<string, { valor: number; unidades: number }>()
+  const releasesInfo = new Map<string, string>()
+  let usd = 0, unidades = 0
+  for (const f of filas) {
+    usd += f.usd
+    unidades += f.cant
+    const c = cat.get(f.isrc)
+    sumar(tiendas, f.tienda || 'Otra', f.usd, f.cant)
+    sumar(paises, f.pais || 'Sin país', f.usd, f.cant)
+    sumar(artistas, f.artista || 'Sin artista', f.usd, f.cant)
+    sumar(tipos, TIPO_REGALIA[f.tipo] || f.tipo || 'Otro', f.usd, f.cant)
+    sumar(meses, f.mes, f.usd, f.cant)
+    sumar(anios, c?.fecha ? c.fecha.slice(0, 4) : 'Sin dato', f.usd, f.cant)
+    const kTrack = f.titulo + (f.mix ? ' (' + f.mix + ')' : '')
+    sumar(tracks, kTrack + '||' + f.artista, f.usd, f.cant)
+    tracksInfo.set(kTrack + '||' + f.artista, { artista: f.artista, catalogo: c ? c.codigo : '' })
+    if (c) {
+      sumar(releases, c.codigo, f.usd, f.cant)
+      releasesInfo.set(c.codigo, c.artista + ' - ' + c.titulo)
+    }
+  }
+  return {
+    usd: Math.round(usd * 100) / 100,
+    unidades,
+    lineas: filas.length,
+    tiendas: top(tiendas, 12),
+    paises: top(paises, 12),
+    artistas: top(artistas, 10),
+    tracks: top(tracks, 12).map(t => ({ ...t, label: t.label.split('||')[0], ...tracksInfo.get(t.label)! })),
+    releases: top(releases, 10).map(r => ({ ...r, catalogo: r.label, label: releasesInfo.get(r.label) || r.label })),
+    tipos: top(tipos, 6),
+    anioLanzamiento: [...anios.entries()].map(([label, v]) => ({ label, valor: Math.round(v.valor * 100) / 100 })).sort((a, b) => a.label.localeCompare(b.label)),
+    mesesVenta: [...meses.entries()].map(([label, v]) => ({ label, valor: Math.round(v.valor * 100) / 100 })).sort((a, b) => a.label.localeCompare(b.label)),
   }
 }
 
@@ -182,11 +290,67 @@ export async function getClaroscuroData(): Promise<ClaroscuroData> {
       .map(s => s.properties?.title)
       .filter((t): t is string => !!t)
 
+    const generales = titulos.filter(t => !TABS_GRANDES.includes(t))
     const res = await sheets.spreadsheets.values.batchGet({
       spreadsheetId: SPREADSHEET_ID,
-      ranges: titulos.map(t => "'" + t.replace(/'/g, "''") + "'!A1:Z2000"),
+      ranges: generales.map(t => "'" + t.replace(/'/g, "''") + "'!A1:Z2000"),
     })
     const pestanas = (res.data.valueRanges || []).map(r => (r.values || []) as string[][])
+
+    // Regalías y catálogo: pestañas propias, leídas completas
+    const grandes = TABS_GRANDES.filter(t => titulos.includes(t))
+    const resG = grandes.length
+      ? await sheets.spreadsheets.values.batchGet({
+          spreadsheetId: SPREADSHEET_ID,
+          ranges: grandes.map(t => "'" + t + "'!A2:M100000"),
+        })
+      : null
+    const valoresDe = (t: string) => {
+      const i = grandes.indexOf(t)
+      return i === -1 ? [] : ((resG?.data.valueRanges?.[i]?.values || []) as string[][])
+    }
+
+    const catMap = new Map<string, FilaCatalogo>()
+    for (const r of valoresDe('Catalogo')) {
+      const isrc = (r[5] || '').trim()
+      if (!isrc) continue
+      catMap.set(isrc, { codigo: codigoNormal((r[0] || '').trim()), fecha: r[1] || '', artista: r[3] || '', titulo: r[4] || '', isrc })
+    }
+    const filasReg: FilaRegalia[] = valoresDe('Regalias').map(r => ({
+      rid: r[0] || '', rfecha: r[1] || '', mes: r[2] || '', isrc: (r[3] || '').trim(), artista: r[5] || '', titulo: r[6] || '',
+      mix: r[7] || '', tienda: r[8] || '', pais: r[9] || '', tipo: r[10] || '', cant: parseInt(r[11] || '0') || 0, usd: num(r[12]),
+    })).filter(f => f.rid)
+
+    const porReporte = new Map<string, { id: string; fecha: string; usd: number; lineas: number }>()
+    for (const f of filasReg) {
+      const x = porReporte.get(f.rid) || { id: f.rid, fecha: f.rfecha, usd: 0, lineas: 0 }
+      x.usd += f.usd
+      x.lineas++
+      porReporte.set(f.rid, x)
+    }
+    const reportes = [...porReporte.values()].map(r => ({ ...r, usd: Math.round(r.usd * 100) / 100 })).sort((a, b) => a.fecha.localeCompare(b.fecha))
+    const ultimoRep = reportes[reportes.length - 1]
+    const filasUltimo = ultimoRep ? filasReg.filter(f => f.rid === ultimoRep.id) : []
+    const regalias: Regalias = {
+      reportes,
+      ultimo: ultimoRep ? agregar(filasUltimo, catMap) : null,
+      total: reportes.length ? agregar(filasReg, catMap) : null,
+    }
+
+    const catRel = new Map<string, FilaCatalogo>()
+    for (const c of catMap.values()) if (!catRel.has(c.codigo)) catRel.set(c.codigo, c)
+    const relOrden = [...catRel.values()].sort((a, b) => b.fecha.localeCompare(a.fecha))
+    const porAnio = new Map<string, number>()
+    for (const r of relOrden) porAnio.set(r.fecha.slice(0, 4), (porAnio.get(r.fecha.slice(0, 4)) || 0) + 1)
+    const conVentas = new Set(filasUltimo.map(f => catMap.get(f.isrc)?.codigo).filter(Boolean))
+    const catalogo: Catalogo = {
+      releases: catRel.size,
+      tracks: catMap.size,
+      artistas: new Set(relOrden.map(r => r.artista)).size,
+      ultimo: relOrden[0] ? { codigo: relOrden[0].codigo, fecha: relOrden[0].fecha, titulo: relOrden[0].artista + ' - ' + relOrden[0].titulo } : null,
+      porAnio: [...porAnio.entries()].map(([label, valor]) => ({ label, valor })).sort((a, b) => a.label.localeCompare(b.label)),
+      conVentasUltimoReporte: conVentas.size,
+    }
 
     // ---------- Ventas Bandcamp (agente) ----------
     // fecha | item_name | item_type | currency | item_price | item_total | amount_you_received | net_amount | package | item_url | transaction_item_id
@@ -312,6 +476,8 @@ export async function getClaroscuroData(): Promise<ClaroscuroData> {
       tiendasTitulo: tTiendas?.titulo || '',
       redes,
       posts,
+      regalias,
+      catalogo,
       ultimaVentaLeida: ventas[0]?.fecha || null,
       resumen: {
         ventasBandcamp: ventas.length,

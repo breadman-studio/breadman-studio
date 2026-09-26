@@ -1,7 +1,7 @@
 'use client'
 // Vista Claroscuro del panel: submenú de botones a la izquierda + métricas visuales (sin tablas largas).
 import { useMemo, useState } from 'react'
-import type { ClaroscuroData, VentaBandcamp, RedResumen, PostRed } from '@/lib/claroscuro-sheet'
+import type { ClaroscuroData, VentaBandcamp, RedResumen, PostRed, Regalias, Catalogo, RegaliasAgg } from '@/lib/claroscuro-sheet'
 
 const C = {
   bg: '#111111', surface: '#1a1a1a', border: '#2a2a2a',
@@ -13,6 +13,7 @@ const PALETA = [C.bc, C.gold, C.le, C.redes, C.ok, C.warn]
 const SUB = [
   { id: 'resumen', label: 'Resumen', color: C.gold, icon: '◐' },
   { id: 'bandcamp', label: 'Bandcamp', color: C.bc, icon: '◎' },
+  { id: 'regalias', label: 'Regalías', color: C.ok, icon: '◆' },
   { id: 'labelengine', label: 'Label Engine', color: C.le, icon: '◇' },
   { id: 'redes', label: 'Redes', color: C.redes, icon: '◈' },
 ]
@@ -270,6 +271,144 @@ function RedesSeccion({ redes, posts }: { redes: RedResumen[]; posts: PostRed[] 
   </>)
 }
 
+
+// ---------- Regalías (reportes mensuales del distribuidor, cargados por el bot) ----------
+function usd(n: number) {
+  return n >= 1 ? money(n) : '$' + n.toFixed(3).replace('.', ',')
+}
+
+function RegaliasSeccion({ regalias, catalogo }: { regalias: Regalias; catalogo: Catalogo }) {
+  const [alcance, setAlcance] = useState<'ultimo' | 'total'>('ultimo')
+  const grid = (min: number) => ({ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 12 })
+
+  if (!regalias.total) {
+    return (
+      <Card title="Sin reportes cargados" color={C.ok}>
+        <div style={{ fontSize: 15, color: C.muted, lineHeight: 1.6 }}>
+          Envía por Telegram al bot del sello el CSV mensual de regalías (<b>royalties_…csv</b>) y el catálogo
+          (<b>publishing_export.csv</b>). El bot los carga en la planilla y esta sección se arma sola.
+        </div>
+      </Card>
+    )
+  }
+
+  const a = (alcance === 'ultimo' ? regalias.ultimo : regalias.total) as RegaliasAgg
+  const ult = regalias.reportes[regalias.reportes.length - 1]
+  const fechaRep = (f: string) => new Date(f + 'T12:00:00').toLocaleDateString('es-CL', { month: 'short', year: 'numeric' }).replace('.', '')
+  const top = a.tracks[0]
+  const tiendaTop = a.tiendas[0]
+  const unidadesTop = a.tiendas.slice().sort((x, y) => (y.unidades || 0) - (x.unidades || 0))[0]
+  const recientes = a.anioLanzamiento.filter(x => x.label >= String(new Date().getFullYear() - 1)).reduce((s, x) => s + x.valor, 0)
+
+  return (<>
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      {([['ultimo', 'Último reporte · ' + fechaRep(ult.fecha)], ['total', 'Acumulado · ' + regalias.reportes.length + (regalias.reportes.length === 1 ? ' reporte' : ' reportes')]] as const).map(([id, label]) => {
+        const act = id === alcance
+        return (
+          <button key={id} onClick={() => setAlcance(id)} style={{ padding: '8px 16px', borderRadius: 20, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 13, fontWeight: 700, background: act ? C.ok : C.ok + '14', color: act ? '#111' : C.ok, border: '1px solid ' + (act ? C.ok : C.ok + '40') }}>
+            {label}
+          </button>
+        )
+      })}
+    </div>
+
+    <div style={grid(150)}>
+      <Kpi color={C.ok} value={money(a.usd)} label="Ingresos netos" sub={alcance === 'ultimo' ? 'reporte ' + fechaRep(ult.fecha) : 'todos los reportes'} />
+      <Kpi color={C.le} value={a.unidades.toLocaleString('es-CL')} label="Reproducciones y ventas" />
+      <Kpi color={C.gold} value={a.tiendas.length} label="Tiendas" sub={tiendaTop ? 'principal: ' + tiendaTop.label : ''} />
+      <Kpi color={C.bc} value={a.paises.length === 12 ? '12+' : a.paises.length} label="Países" sub={a.paises[0] ? 'principal: ' + a.paises[0].label : ''} />
+    </div>
+
+    {top && (
+      <div style={{ background: `linear-gradient(120deg, ${C.ok}2e, ${C.surface} 65%)`, border: '1px solid ' + C.ok + '55', borderRadius: 12, padding: 18, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 30, color: C.ok }}>★</div>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontSize: 13, color: C.ok, fontWeight: 700, letterSpacing: '0.5px' }}>TRACK QUE MÁS GENERÓ</div>
+          <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{top.label}</div>
+          <div style={{ fontSize: 14, color: C.muted, marginTop: 3 }}>{top.artista}{top.catalogo ? ' · ' + top.catalogo : ''} · {usd(top.valor)} · {top.unidades} {top.unidades === 1 ? 'unidad' : 'unidades'}</div>
+        </div>
+      </div>
+    )}
+
+    {regalias.reportes.length > 1 && (
+      <Card title="Ingresos por reporte" color={C.ok}>
+        <Barras datos={regalias.reportes.map(r => ({ label: fechaRep(r.fecha), valor: r.usd }))} color={C.ok} formato={n => money(n)} />
+      </Card>
+    )}
+
+    <div style={grid(280)}>
+      <Card title="Por tienda" color={C.gold}>
+        <Ranking color={C.gold} items={a.tiendas.slice(0, 8).map(t => ({ label: t.label, valor: t.valor, extra: usd(t.valor) + ' · ' + (t.unidades || 0).toLocaleString('es-CL') + ' u.' }))} />
+      </Card>
+      <Card title="Por país" color={C.bc}>
+        <Ranking color={C.bc} items={a.paises.slice(0, 8).map(p => ({ label: p.label, valor: p.valor, extra: usd(p.valor) }))} />
+      </Card>
+    </div>
+
+    <Card title="Top tracks" color={C.le}>
+      <div style={grid(220)}>
+        {a.tracks.slice(0, 9).map((t, i) => (
+          <div key={t.label + t.artista} style={{ background: C.bg, borderRadius: 10, padding: 12, borderLeft: '3px solid ' + C.le }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ fontSize: 13, color: C.dim }}>#{i + 1}</span>
+              {t.catalogo && <span style={{ fontSize: 12, fontWeight: 700, color: C.le, background: C.le + '1f', padding: '1px 7px', borderRadius: 10 }}>{t.catalogo}</span>}
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 600, marginTop: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.label}>{t.label}</div>
+            <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{t.artista}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 14 }}>
+              <span style={{ color: C.muted }}>{(t.unidades || 0).toLocaleString('es-CL')} u.</span>
+              <span style={{ fontWeight: 800, color: C.ok }}>{usd(t.valor)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+
+    <div style={grid(280)}>
+      <Card title="Por artista" color={C.redes}>
+        <Ranking color={C.redes} items={a.artistas.slice(0, 8).map(x => ({ label: x.label, valor: x.valor, extra: usd(x.valor) }))} />
+      </Card>
+      <Card title="Por release" color={C.gold}>
+        <Ranking color={C.gold} items={a.releases.slice(0, 8).map(x => ({ label: x.catalogo + ' · ' + x.label, valor: x.valor, extra: usd(x.valor) }))} />
+      </Card>
+    </div>
+
+    <div style={grid(280)}>
+      <Card title="Catálogo antiguo vs. nuevo (por año de lanzamiento)" color={C.le}>
+        <Barras datos={a.anioLanzamiento} color={C.le} formato={n => money(n)} />
+        <div style={{ fontSize: 13, color: C.muted, marginTop: 10 }}>
+          Releases de {new Date().getFullYear() - 1} en adelante: {a.usd ? Math.round((recientes / a.usd) * 100) : 0}% de los ingresos.
+        </div>
+      </Card>
+      <Card title="Tipo de ingreso" color={C.bc}>
+        <Segmentos items={a.tipos.map((t, i) => ({ label: t.label, valor: t.valor, color: [C.le, C.gold, C.redes, C.bc][i % 4], extra: usd(t.valor) + ' · ' + (t.unidades || 0).toLocaleString('es-CL') + ' u.' }))} />
+        {tiendaTop && unidadesTop && tiendaTop.label !== unidadesTop.label && (
+          <div style={{ fontSize: 13, color: C.muted, marginTop: 12, lineHeight: 1.5 }}>
+            {tiendaTop.label} deja {usd(tiendaTop.valor)} con {(tiendaTop.unidades || 0).toLocaleString('es-CL')} u.; {unidadesTop.label} suma {(unidadesTop.unidades || 0).toLocaleString('es-CL')} u. y deja {usd(unidadesTop.valor)}.
+          </div>
+        )}
+      </Card>
+    </div>
+
+    {catalogo.releases > 0 && (
+      <Card title="Catálogo" color={C.gold}>
+        <div style={grid(150)}>
+          <Kpi color={C.gold} value={catalogo.releases} label="Releases" sub={catalogo.tracks + ' tracks'} />
+          <Kpi color={C.redes} value={catalogo.artistas} label="Artistas" />
+          <Kpi color={C.ok} value={catalogo.conVentasUltimoReporte + ' / ' + catalogo.releases} label="Releases con ingresos" sub={'reporte ' + fechaRep(ult.fecha)} />
+          <Kpi color={C.le} value={catalogo.ultimo ? catalogo.ultimo.codigo : '—'} label="Último lanzamiento" sub={catalogo.ultimo ? catalogo.ultimo.titulo : ''} />
+        </div>
+        <div style={{ marginTop: 14 }}>
+          <Barras datos={catalogo.porAnio} color={C.gold} formato={n => String(n)} />
+          <div style={{ fontSize: 13, color: C.dim, marginTop: 6 }}>Releases por año</div>
+        </div>
+      </Card>
+    )}
+
+    <div style={{ fontSize: 13, color: C.dim }}>Reportes de regalías del distribuidor (Pressology / Label Engine), cargados por el bot. Montos netos en USD. Algunos reportes incluyen ventas atrasadas de meses anteriores.</div>
+  </>)
+}
+
 // ---------- vista principal ----------
 export default function ClaroscuroView({ data }: { data: ClaroscuroData }) {
   const [sub, setSub] = useState('resumen')
@@ -338,6 +477,8 @@ export default function ClaroscuroView({ data }: { data: ClaroscuroData }) {
 
         {sub === 'bandcamp' && (data.ok ? <BandcampSeccion ventasTodas={ventasBc} /> : <Aviso texto={data.error || 'No se pudo leer la planilla'} />)}
 
+        {sub === 'regalias' && (data.ok ? <RegaliasSeccion regalias={data.regalias} catalogo={data.catalogo} /> : <Aviso texto={data.error || 'No se pudo leer la planilla'} />)}
+
         {sub === 'labelengine' && (data.ok ? (<>
           <div style={grid(150)}>
             <Kpi color={C.le} value={money(pendiente)} label="Por cobrar" sub={data.resumen.statementsPendientes + ' statements pendientes'} />
@@ -345,6 +486,11 @@ export default function ClaroscuroView({ data }: { data: ClaroscuroData }) {
             <Kpi color={C.gold} value={money(pendiente + pagado)} label="Total generado" sub={st.length + ' statements'} />
           </div>
 
+          {data.regalias.total ? (
+            <div style={{ fontSize: 14, color: C.muted, background: C.ok + '12', border: '1px solid ' + C.ok + '40', borderRadius: 10, padding: '12px 14px' }}>
+              El detalle por tienda, país, track y artista ahora se calcula solo desde los reportes del distribuidor: sección <b style={{ color: C.ok }}>Regalías</b>.
+            </div>
+          ) : (<>
           <Card title={'Revenue por tienda' + (data.tiendasTitulo.match(/\w+ \d{4}/) ? ' · ' + data.tiendasTitulo.match(/\w+ \d{4}/)![0] : '')} color={C.gold}
             right={<div style={{ display: 'flex', gap: 12, fontSize: 13, color: C.muted }}>
               <span><span style={{ color: C.gold }}>■</span> venta</span><span><span style={{ color: C.le }}>■</span> stream</span><span><span style={{ color: C.bc }}>■</span> suscripción</span>
@@ -377,10 +523,14 @@ export default function ClaroscuroView({ data }: { data: ClaroscuroData }) {
             )}
           </Card>
 
+          </>)}
+
           <div style={grid(260)}>
-            <Card title="Países (top tracks)" color={C.ok}>
-              <Ranking color={C.ok} items={contar(data.topTracks, t => t.pais, t => t.revenue).slice(0, 6).map(p => ({ ...p, extra: money(p.valor) }))} />
-            </Card>
+            {!data.regalias.total && (
+              <Card title="Países (top tracks)" color={C.ok}>
+                <Ranking color={C.ok} items={contar(data.topTracks, t => t.pais, t => t.revenue).slice(0, 6).map(p => ({ ...p, extra: money(p.valor) }))} />
+              </Card>
+            )}
             <Card title="Statements por mes" color={C.le} right={
               <div style={{ display: 'flex', gap: 12, fontSize: 13, color: C.muted }}>
                 <span><span style={{ color: C.le }}>■</span> pendiente</span><span><span style={{ color: C.ok }}>■</span> pagado</span>
